@@ -2,7 +2,7 @@
 def get_train_data(train_path):
     X = []
     y = []
-    with open(path, 'r') as file:
+    with open(train_path, 'r') as file:
         for line in file:
             if(len(line.rstrip().split()) == 0):
                 pass
