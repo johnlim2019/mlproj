@@ -1,5 +1,8 @@
 from pprint import pprint
 import utils
+import numpy as np
+
+
 
 def get_train_data(train_path):
     # split  text into sentences for both hidden and observable variables
@@ -8,7 +11,7 @@ def get_train_data(train_path):
     y = ['START']
     with open(train_path, 'r') as file:
         lineCounter = 0 
-        for line in file.readlines()[:100]:
+        for line in file.readlines():
             if(len(line.rstrip().split()) == 0):
                 if lineCounter > 0:
                     y.append("STOP")
@@ -31,6 +34,12 @@ def count_u(y,states_y)->dict:
         count_u_map[state] = y.count(state)
     return count_u_map
 
+def count_y_x_1st(y:list,x:list):
+    seq_pairs = []
+    count_u_v_map = {}
+    return count_u_v_map, seq_pairs
+
+
 def count_u_v_1st(y:list,y_states:set):
     # count the instances of U->V in first order and return the count in a dict
     # format: 
@@ -38,8 +47,9 @@ def count_u_v_1st(y:list,y_states:set):
     # set up the map 
     # y_i cannot include stop we cannot move to another state from stop
     # y_i+1 cannot include start we cannot move from any state to start
+    seq_pairs = []
     count_u_v_map = {}
-    print(y_states)
+    # print(y_states)
     y_i = y_states.copy()
     y_i.remove("STOP")
     y_i_1 = y_states.copy()
@@ -58,31 +68,38 @@ def count_u_v_1st(y:list,y_states:set):
             print(v_i)
             break
         v_i_1 = y[i+1]        
+        seq_pairs.append([v_i,v_i_1])
         count_u_v_map[v_i][v_i_1] += 1
     # pprint(count_u_v_map)
-    return count_u_v_map
+    return count_u_v_map, seq_pairs
 
 def get_transmission_matrix(count_u_v_map:dict,count_u_map:dict):
     for u_i in count_u_v_map.keys():
         divisor = count_u_map[u_i]
         for v_i in count_u_v_map[u_i].keys():
             count_u_v_map[u_i][v_i] /=divisor
-    pprint(count_u_v_map)
+    # pprint(count_u_v_map)
     return count_u_v_map
 
-
-
-def count_x_given_y(x,y):
-    count_x_given_y_map = {}
-
-    return
+def get_transmission_mle(pairs:list,trans_matrix:dict,count_u_v_map:dict):
+    q_u_v = []
+    coeff = []
+    for i in pairs:
+        coeff.append(count_u_v_map[i[0]][i[1]])
+        q_u_v.append(trans_matrix[i[0]][i[1]])
+    # print(q_u_v)
+    q_u_v = np.multiply(-1*np.log(q_u_v),coeff)
+    print(q_u_v)
+    mle_val = np.sum(q_u_v)
+    return  q_u_v, mle_val
 
 x,y = get_train_data("EN/train")
-print(x,y)
 y_states = sentence_hidden_states_set(y)
 count_u_map = count_u(y,y_states)
-count_u_v_map = count_u_v_1st(y,y_states)
+count_u_v_map, train_seq_pairs = count_u_v_1st(y,y_states)
 transmission_matrix = get_transmission_matrix(count_u_v_map,count_u_map)
+q, mle_trans = get_transmission_mle(train_seq_pairs,transmission_matrix,count_u_v_map)
+print("Part2 Part A: MLE of transmission prob: "+str(mle_trans))
 
 
 
