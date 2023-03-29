@@ -1,12 +1,24 @@
 # generate train data
+from pprint import pprint
 def get_train_data(train_path):
-    X = []
+    x = []
     y = []
+    y_one = []
+    x_one = []
     with open(train_path, 'r') as file:
-        for line in file:
+        lineCounter = 0 
+        for line in file.readlines()[:50]:
             if(len(line.rstrip().split()) == 0):
-                pass
+                if lineCounter > 0:
+                    y.append(y_one)
+                    x.append(x_one)
+                    y_one = []
+                    x_one = []
             else:
-                X.append(line.rstrip().split()[0])
-                y.append(line.rstrip().split()[1])
-    return X, y
+                x_one.append(line.rstrip().split()[0])
+                y_one.append(line.rstrip().split()[1])
+            lineCounter += 1
+    return x, y
+
+
+x,y = get_train_data("EN/train")
