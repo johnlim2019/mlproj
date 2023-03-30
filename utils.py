@@ -15,5 +15,3 @@ def get_train_data(train_path):
                 y.append(line.rstrip().split()[1])
             lineCounter += 1
     return x, y
-
-
