@@ -34,11 +34,6 @@ def count_u(y,states_y)->dict:
         count_u_map[state] = y.count(state)
     return count_u_map
 
-def count_y_x_1st(y:list,x:list):
-    seq_pairs = []
-    count_u_v_map = {}
-    return count_u_v_map, seq_pairs
-
 
 def count_u_v_1st(y:list,y_states:set):
     # count the instances of U->V in first order and return the count in a dict
@@ -93,13 +88,16 @@ def get_transmission_mle(pairs:list,trans_matrix:dict,count_u_v_map:dict):
     mle_val = np.sum(q_u_v)
     return  q_u_v, mle_val
 
-x,y = get_train_data("EN/train")
-y_states = sentence_hidden_states_set(y)
-count_u_map = count_u(y,y_states)
-count_u_v_map, train_seq_pairs = count_u_v_1st(y,y_states)
-transmission_matrix = get_transmission_matrix(count_u_v_map,count_u_map)
-q, mle_trans = get_transmission_mle(train_seq_pairs,transmission_matrix,count_u_v_map)
-print("Part2 Part A: MLE of transmission prob: "+str(mle_trans))
+
+
+if __name__ == '__main__':
+    x,y = get_train_data("EN/train")
+    y_states = sentence_hidden_states_set(y)
+    count_u_map = count_u(y,y_states)
+    count_u_v_map, train_seq_pairs = count_u_v_1st(y,y_states)
+    transmission_matrix = get_transmission_matrix(count_u_v_map,count_u_map)
+    q, mle_trans = get_transmission_mle(train_seq_pairs,transmission_matrix,count_u_v_map)
+    print("Part2 Part A: MLE of transmission prob: "+str(mle_trans))
 
 
 
