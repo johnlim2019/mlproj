@@ -6,7 +6,7 @@ def get_data(path):
     X = []
     y = []
     with open(path, 'r') as file:
-        for line in file:
+        for line in file.readlines()[:50]:
             if(len(line.rstrip().split()) == 0):
                 pass
             else:
@@ -36,21 +36,25 @@ def generate_emission_matrix(train_path):
     
     # get set of observed values, convert to list so can get index
     observed_values = list(set(train_data_X))
+    observed_values.sort()
 
     # get set of hidden states, convert to list so can get index
     hidden_states = list(set(train_data_y))
+    hidden_states.sort()
     total_count_per_state = dict.fromkeys(hidden_states, 0)
 
     # generate emission matrix, storing total counts of each emission from u to o
     emission_matrix = generate_matrix(observed_values, hidden_states)
+    count_u_o_matrix = generate_matrix(observed_values, hidden_states)
 
 
     # update the counts into the matrix
     for o,u in zip(observed_values, train_data_y):
         total_count_per_state[u] += 1
-        emission_matrix[hidden_states.index(u)][observed_values.index(o)] += 1
+        count_u_o_matrix[hidden_states.index(u)][observed_values.index(o)] += 1
 
     # update emission matrix based on formula count(u->o)/count(u), probabilities
+    emission_matrix = count_u_o_matrix.copy()
     for u in hidden_states:
         for o in observed_values:
             emission_matrix[hidden_states.index(u)][observed_values.index(o)] /= total_count_per_state[u]
@@ -59,7 +63,7 @@ def generate_emission_matrix(train_path):
     # print(observed_values)
     # print(emission_matrix)
     # print(total_count_per_state)
-    return emission_matrix, total_count_per_state, observed_values, hidden_states
+    return emission_matrix,count_u_o_matrix ,total_count_per_state, observed_values, hidden_states
 
 
 def test(emission_matrix, test_path, hidden_state_counter:dict, observed_values:list, hidden_states:list):
@@ -95,7 +99,7 @@ def get_f_score(tag_dict, dev_out_path, pred_entities):
     return f_score
 
 if __name__ == '__main__':
-    emission_matrix, hidden_state_counter, observed_values, hidden_states = generate_emission_matrix("EN/train")
+    emission_matrix,count_u_o_matrix, hidden_state_counter, observed_values, hidden_states = generate_emission_matrix("EN/train")
     tag_dict, pred_entities = test(emission_matrix, "EN/dev.in", hidden_state_counter, observed_values, hidden_states)
     f_score = get_f_score(tag_dict, "EN/dev.out", pred_entities)
     print(f_score)
