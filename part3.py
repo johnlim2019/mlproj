@@ -1,6 +1,7 @@
 import numpy as np 
 from pprint import pprint
 import part2 as p2
+import part1 as p1
 
 def count_u0_u1_v(y:list,y_states:set):
     # count the instances transmission 
@@ -65,6 +66,7 @@ def count_u0_u1(y:list,y_states:set):
     return count_u0_u1_map        
 
 def get_transmission_matrix_2nd(count_u0_u1_v_map:dict,count_u0_u1_map:dict):
+    # count_u1_u0_v_map[y_i][y_i_1][y_i_2] = the  transmission prob for tha given set of vars
     for u_0 in count_u0_u1_v_map.keys():
         for u_1 in count_u0_u1_v_map[u_0].keys():
             divisor = count_u0_u1_map[u_0][u_1]
@@ -86,17 +88,21 @@ def get_transmission_mle_2nd(triples:list,trans_matrix:dict,count_u0_u1_v_map:di
             # print(i)
             # print(trans_matrix[i[0]][i[1]][i[2]])
         a_u0_u1_v.append(trans_matrix[i[0]][i[1]][i[2]])
-    a_u0_u1_v = np.multiply(-1*np.log(a_u0_u1_v),coeff)
+    a_u0_u1_v = np.multiply(np.log(a_u0_u1_v),coeff)
     # pprint(a_u0_u1_v)
     mle_val = np.sum(a_u0_u1_v)
     return a_u0_u1_v, mle_val        
 
-if __name__ == '__main__':
-    x,y = p2.get_train_data('EN/train')
-    y_states = p2.sentence_hidden_states_set(y)
-    count_u0_u1_map = count_u0_u1(y,y_states)
-    count_u0_u1_v_map,seq_triples = count_u0_u1_v(y,y_states)
+def get_log_likelihood_2nd(path:str):
+    em_q, em_mle = p2.get_em_likelihood_outer(path)
+    x2,y2 = p2.get_train_data(path)
+    y_states = p2.sentence_hidden_states_set(y2)
+    count_u0_u1_map = count_u0_u1(y2,y_states)
+    count_u0_u1_v_map,seq_triples = count_u0_u1_v(y2,y_states)
     # pprint(count_u0_u1_v_map)
     trans_matrix = get_transmission_matrix_2nd(count_u0_u1_v_map,count_u0_u1_map)
-    ls, mle_val = get_transmission_mle_2nd(seq_triples,trans_matrix,count_u0_u1_v_map)
-    print(mle_val)
+    transls, transmle = get_transmission_mle_2nd(seq_triples,trans_matrix,count_u0_u1_v_map)
+    return transmle + em_mle
+
+if __name__ == '__main__':    
+    print(get_log_likelihood_2nd("EN/TRAIN"))
