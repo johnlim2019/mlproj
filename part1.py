@@ -6,7 +6,7 @@ def get_data(path):
     X = []
     y = []
     with open(path, 'r') as file:
-        for line in file.readlines()[:50]:
+        for line in file.readlines():
             if(len(line.rstrip().split()) == 0):
                 pass
             else:
