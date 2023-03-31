@@ -41,6 +41,7 @@ def count_u0_u1_v(y:list,y_states:set):
     return count_u1_u0_v_map, seq_triples
 
 def count_u0_u1(y:list,y_states:set):
+    # counts the instances where u0 and u1 pair are the dependent hidden states for a transmission change
     count_u0_u1_map = {}
     # print(y_states)
     y_i = y_states.copy()
@@ -66,7 +67,7 @@ def count_u0_u1(y:list,y_states:set):
     return count_u0_u1_map        
 
 def get_transmission_matrix_2nd(count_u0_u1_v_map:dict,count_u0_u1_map:dict):
-    # count_u1_u0_v_map[y_i][y_i_1][y_i_2] = the  transmission prob for tha given set of vars
+    # count_u1_u0_v_map[y_i][y_i_1][y_i_2] = prob of y_i,y_i_1 -> y_i_2 given y_i,y_i_1
     for u_0 in count_u0_u1_v_map.keys():
         for u_1 in count_u0_u1_v_map[u_0].keys():
             divisor = count_u0_u1_map[u_0][u_1]
@@ -80,6 +81,8 @@ def get_transmission_matrix_2nd(count_u0_u1_v_map:dict,count_u0_u1_map:dict):
     return count_u0_u1_v_map
 
 def get_transmission_mle_2nd(triples:list,trans_matrix:dict,count_u0_u1_v_map:dict):
+    # this returns the transmission log likelihood
+    # sum of log(prob of u0,u1->v given u0,u1) * count(u0,u1)
     a_u0_u1_v = []
     coeff = []
     for i in triples:
@@ -94,7 +97,10 @@ def get_transmission_mle_2nd(triples:list,trans_matrix:dict,count_u0_u1_v_map:di
     return a_u0_u1_v, mle_val        
 
 def get_log_likelihood_2nd(path:str):
+    # joint log likelihood for transmission and emission
     em_q, em_mle = p2.get_em_likelihood_outer(path)
+    
+    # 2nd order transmission log likelihood
     x2,y2 = p2.get_train_data(path)
     y_states = p2.sentence_hidden_states_set(y2)
     count_u0_u1_map = count_u0_u1(y2,y_states)
