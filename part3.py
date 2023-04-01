@@ -68,7 +68,7 @@ def count_u0_u1(y:list,y_states:set):
         if "STOP" in v_i_1:
             continue # cannot move to another state from stop
         if "START" in v_i:
-            # START we consider do not consider the pair unique, 
+            # START we consider do not consider three values, start only in
             # we count all number of starts
             count_u0_u1_map[v_i][v_i_1] = num_of_start
         else:
@@ -97,6 +97,7 @@ def get_transmission_matrix_2nd_outer(path:str):
     count_u0_u1_map = count_u0_u1(y2,y_states)
     count_u0_u1_v_map,seq_triples = count_u0_u1_v(y2,y_states)
     # pprint(count_u0_u1_v_map)
+    # pprint(count_u0_u1_map)
     trans_matrix = get_transmission_matrix_2nd(count_u0_u1_v_map,count_u0_u1_map)
     return trans_matrix, count_u0_u1_map
 
@@ -120,10 +121,11 @@ def predict_file(trainingPath:str,testPath:str):
     emission_matrix, count_u_o_matrix, hidden_state_counter, observed_values, hidden_states = p1.generate_emission_matrix(trainingPath)
 
     log_likelihood = 0
-    for x in sentences[:1]:
+    y_predict_all = []
+    for x in sentences:
         # set up start 
         # pprint(transmission_matrix["START"])
-        print(x)
+        # print(x)
         high_p = -math.inf
         highest_key_start_u1 = None 
         highest_key_start_v = None
@@ -137,7 +139,7 @@ def predict_file(trainingPath:str,testPath:str):
         for u1 in transmission_matrix["START"].keys():
             subdir = transmission_matrix["START"][u1]
             # from start we cannot reach STOP
-            # START is not one of the possible v states, it is not in this list alr
+            # START is not one of the possible u1 states, it is not in this list alr
             v_list = list(subdir.keys())
             v_list.remove("STOP")
             for v in v_list:
@@ -160,7 +162,7 @@ def predict_file(trainingPath:str,testPath:str):
                 if a == 0:
                     # if transmission is not known its p is small
                     # one out of all the possible cells the transmission matrix 
-                    a = 1/len(hidden_states)/len(hidden_states)/len(hidden_states)
+                    a = 1/len(hidden_states)/len(hidden_states)
                 if count_u0_u1 == 0:
                     # it only occurred once
                     count_u0_u1 = 1                                                
@@ -170,9 +172,11 @@ def predict_file(trainingPath:str,testPath:str):
                     high_p = p
                     highest_key_start_u1 = u1
                     highest_key_start_v = v
-        print(high_p)
+        # print(high_p)
+
+        # set up the sentence predidction
         y_predict = ["START",highest_key_start_u1,highest_key_start_v]   
-        print(y_predict)
+        # print(y_predict)
         log_likelihood += high_p
 
         # iterating over the observable states
@@ -181,13 +185,13 @@ def predict_file(trainingPath:str,testPath:str):
         for index,x_1 in enumerate(x):
             completed_x.append(x_1)
             # we have the guessed the first two hidden states already. we start at o3
+            # to do so we skip the first two observation states
             if index == 0 or index == 1:
                 continue
+            # print(x_1)
             # once we reach the second last observable element stop, 
             # the iteration is looking one x value forward 
             # the last one and stop triple should be tested outside this loop. (special case)
-            if index >= len(x) - 1:
-                break
 
             high_p = -math.inf
             highest_key_start_v = None
@@ -239,7 +243,8 @@ def predict_file(trainingPath:str,testPath:str):
             y_predict.append(v)
         # exit sentence inner loop
         # from the yn to stop there is only one possible log likelihood value. 
-        # given yn-1, yn,  yn+1
+        # given yn-1, yn -> yn+1
+        # No emission to measure as yn+1 does not have any emission
         u0 = y_predict[-2]
         u1 = y_predict[-1]
         v = "STOP"
@@ -267,28 +272,54 @@ def predict_file(trainingPath:str,testPath:str):
             count_u1_o1 = count_u_o_matrix[hidden_states.index(u1)][observed_values.index(o1)]        
         if o1_known == False or b1 ==0 :
             b1 = 1 /(len(observed_values)+1)
-            count_u1_o1 = 1                    
-        a = transmission_matrix["START"][u1][v]                                                
-        count_u0_u1 = count_u0_u1_matrix["START"][u1]
+            count_u1_o1 = 1            
+
+        # find the transition probabiltiy             
+        a = transmission_matrix[u0][u1]["STOP"]                                                
+        count_u0_u1 = count_u0_u1_matrix[u0][u1]
         if a == 0:
             # if transmission is not known its p is small
             # one out of all the possible cells the transmission matrix 
             a = 1/len(hidden_states)/len(hidden_states)/len(hidden_states)
         if count_u0_u1 == 0:
-            # it only occurred once
+            # it only occurred once.
             count_u0_u1 = 1                                                
-        p = (count_u0_u1*np.log(a)+count_u1_o1*np.log(b3)+count_v_o2*np.log(b2))
+        p = (count_u0_u1*np.log(a)+count_u0_o0*np.log(b0)+count_u1_o1*np.log(b1))
+        y_predict.append("STOP")
+        # add the log likelihood and record the sentence y values
+        log_likelihood +=  p
+        y_predict_all.append(y_predict)
+        # we completed one sentence, move to the next sentence.
+        # print(len(y_predict)-len(x))
+        # print(completed_x)
+        # print(y_predict)
+    # print(log_likelihood)   
+    return log_likelihood, y_predict_all
+
+def compile_dev_out(x_testdata:list,y_predictions:list,folder:str):
+    # x_testdata this takes in the data from part3's get_test_data method
+    # this is is nested list, list of a sentence list
+    # y_predictions are the output from the y_predict_file
+    # this is a nested list, list of sentence list
+    all_sentence_string = ""
+    for ind,x_sentence in enumerate(x_testdata):
+        y_sentence = y_predictions[ind]
+        y_sentence.remove("STOP")
+        y_sentence.remove("START")
+        sentence_string = "\n"
+        for j,o_j in enumerate(x_sentence):
+            y_j = y_sentence[j]
+            sentence_string += o_j + " " + y_j +"\n"
+        all_sentence_string += sentence_string
+
+    with open(folder+"/dev.p3.out",'w') as f:
+        f.write(all_sentence_string)
+    return
+    
 
 
 
 
-    print(len(y_predict)-len(x))
-    print(completed_x)
-    print(y_predict)
-    print(log_likelihood)
-
-
-    return 
 
 # def get_transmission_mle_2nd(triples:list,trans_matrix:dict,count_u0_u1_v_map:dict):
 #     # this returns the transmission log likelihood
@@ -320,5 +351,18 @@ def predict_file(trainingPath:str,testPath:str):
 #     transls, transmle = get_transmission_mle_2nd(seq_triples,trans_matrix,count_u0_u1_v_map)
 #     return transmle + em_mle
 
+
 if __name__ == '__main__':    
-    predict_file("EN/train","EN/dev.in")
+    loglikelihood, y_predict_all = predict_file("EN/train","EN/dev.in")
+    x_test = get_test_data("EN/dev.in")
+    print(x_test[0])
+    print(y_predict_all[0])
+    print(len(y_predict_all[0])-len(x_test[0]))
+    compile_dev_out(x_test,y_predict_all,"EN")
+
+    loglikelihood, y_predict_all = predict_file("FR/train","FR/dev.in")
+    x_test = get_test_data("FR/dev.in")
+    print(x_test[0])
+    print(y_predict_all[0])
+    print(len(y_predict_all[0])-len(x_test[0]))
+    compile_dev_out(x_test,y_predict_all,"FR")
