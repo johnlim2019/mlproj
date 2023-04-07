@@ -5,7 +5,7 @@ import utils
 def get_data(path):
     X = []
     y = []
-    with open(path, 'r') as file:
+    with open(path, 'r', encoding='utf-8') as file:
         for line in file.readlines():
             if(len(line.rstrip().split()) == 0):
                 pass
@@ -16,7 +16,7 @@ def get_data(path):
 
 def get_test_data(path):
     test_words = []
-    with open(path, 'r') as file:
+    with open(path, 'r', encoding='utf-8') as file:
         for line in file:
             if len(line.replace("\n", "")) == 0:
                 test_words.append("")
