@@ -19,7 +19,7 @@ def get_test_data(path):
     with open(path, 'r') as file:
         for line in file:
             if len(line.replace("\n", "")) == 0:
-                pass
+                test_words.append("")
             else:
                 test_words.append(line.replace("\n", ""))
     return test_words
@@ -51,7 +51,7 @@ def generate_emission_matrix(train_path):
 
 
     # update the counts into the matrix
-    for o,u in zip(observed_values, train_data_y):
+    for o,u in zip(train_data_X, train_data_y):
         total_count_per_state[u] += 1
         count_u_o_matrix[hidden_states.index(u)][observed_values.index(o)] += 1
 
@@ -68,45 +68,43 @@ def generate_emission_matrix(train_path):
     return emission_matrix,count_u_o_matrix ,total_count_per_state, observed_values, hidden_states
 
 
-def test(emission_matrix, test_path, hidden_state_counter:dict, observed_values:list, hidden_states:list):
-    tag_dict = {}
-    # get test data, and create empty dict
-    test_data = list(set(get_test_data(test_path)))
-    for word in test_data:
-        tag_dict[word] = 0
+def test(emission_matrix, test_path, observed_values:list, hidden_states:list):
+    states = []
+    state = ""
 
-    for word in test_data:
-        if word not in observed_values:
-            max_unk_prob = 0
-            for i in range(len(emission_matrix)):
-                if emission_matrix[i][-1] > max_unk_prob:
-                    max_unk_prob = emission_matrix[i][-1]
-                    tag_dict[word] = hidden_states[i]
+    # get test words
+    words = get_test_data(test_path)
+
+    for word in words:
+        if len(word) == 0:
+            states.append("\n")
         else:
-            max_prob = 0
-            for i in range(len(emission_matrix)):
-                if emission_matrix[i][observed_values.index(word)] > max_prob:
-                    max_prob = emission_matrix[i][observed_values.index(word)]
-                    tag_dict[word] = hidden_states[i]
-    return tag_dict, len(get_test_data(test_path))
+            if word not in observed_values:
+                max_unk_prob = 0
+                for i in range(len(emission_matrix)):
+                    if emission_matrix[i][-1] > max_unk_prob:
+                        max_unk_prob = emission_matrix[i][-1]
+                        state = hidden_states[i]
+            else:
+                max_prob = 0
+                for i in range(len(emission_matrix)):
+                    if emission_matrix[i][observed_values.index(word)] > max_prob:
+                        max_prob = emission_matrix[i][observed_values.index(word)]
+                        state = hidden_states[i]
+            states.append(state)
+    return states, words, len(words)
 
-def get_f_score(tag_dict, dev_out_path, pred_entities):
-    # get dev out data
-    dev_out_X, dev_out_y = get_data(dev_out_path)
-    predict_correct = 0
-    # calculate number of correct predictions
-    for i in range(len(dev_out_X)):
-        if dev_out_y[i] == tag_dict[dev_out_X[i]]:
-            predict_correct += 1
 
-    precision = predict_correct / pred_entities
-    recall = predict_correct / len(dev_out_X)
-    f_score = 2 / ((1/precision) + (1/recall))
-    return f_score
+def write_to_file(path, states, words):
+    with open(path, 'w') as f:
+        for i in range(len(words)):
+            if states[i] != "\n":
+                f.write(words[i] + ' ' + states[i] + "\n")
+            else:
+                f.write(states[i])
 
 
 if __name__ == '__main__':
     emission_matrix,count_u_o_matrix, hidden_state_counter, observed_values, hidden_states = generate_emission_matrix("EN/train")
-    tag_dict, pred_entities = test(emission_matrix, "EN/dev.in", hidden_state_counter, observed_values, hidden_states)
-    f_score = get_f_score(tag_dict, "EN/dev.out", pred_entities)
-    print(f_score)
+    states, words, pred_entities = test(emission_matrix, "EN/dev.in", observed_values, hidden_states)
+    write_to_file("EN/dev.p1.out", states, words)
