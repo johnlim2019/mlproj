@@ -30,6 +30,7 @@ def generate_matrix(observed_values, hidden_states):
 
 
 def generate_emission_matrix(train_path):
+    k = 1
 
     # get train data
     train_data_X, train_data_y = get_data(train_path)
@@ -37,6 +38,7 @@ def generate_emission_matrix(train_path):
     # get set of observed values, convert to list so can get index
     observed_values = list(set(train_data_X))
     observed_values.sort()
+    observed_values.append("#UNK#")
 
     # get set of hidden states, convert to list so can get index
     hidden_states = list(set(train_data_y))
@@ -59,10 +61,10 @@ def generate_emission_matrix(train_path):
         for o in observed_values:
             emission_matrix[hidden_states.index(u)][observed_values.index(o)] /= total_count_per_state[u]
 
-    # print(hidden_states)
-    # print(observed_values)
-    # print(emission_matrix)
-    # print(total_count_per_state)
+    # add UNK token to every state
+    for i in range(len(emission_matrix)):
+        emission_matrix[i][-1] = k/(k+total_count_per_state.get(hidden_states[i]))
+
     return emission_matrix,count_u_o_matrix ,total_count_per_state, observed_values, hidden_states
 
 
@@ -75,7 +77,11 @@ def test(emission_matrix, test_path, hidden_state_counter:dict, observed_values:
 
     for word in test_data:
         if word not in observed_values:
-            tag_dict[word] = min(hidden_state_counter, key=hidden_state_counter.get)
+            max_unk_prob = 0
+            for i in range(len(emission_matrix)):
+                if emission_matrix[i][-1] > max_unk_prob:
+                    max_unk_prob = emission_matrix[i][-1]
+                    tag_dict[word] = hidden_states[i]
         else:
             max_prob = 0
             for i in range(len(emission_matrix)):
@@ -97,6 +103,7 @@ def get_f_score(tag_dict, dev_out_path, pred_entities):
     recall = predict_correct / len(dev_out_X)
     f_score = 2 / ((1/precision) + (1/recall))
     return f_score
+
 
 if __name__ == '__main__':
     emission_matrix,count_u_o_matrix, hidden_state_counter, observed_values, hidden_states = generate_emission_matrix("EN/train")
