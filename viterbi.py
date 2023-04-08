@@ -60,15 +60,12 @@ def viterbi(transitions, u, emissions, observations, train_o):
 
             B[j, i-1] = np.argmax(t)
 
-    # Fill stop
-    for i in range(K):
-        t = transitions_log[:, i] + V[:, -2]
-        V[i, -1] = np.max(t)
-        B[i, -1] = np.argmax(t)
+
+    stp = transitions_log[:, -1] + V[:, -2]
 
     # Backtracking
     opt_path = np.zeros(N+1).astype(np.int32)
-    opt_path[-1] = np.argmax(V[:, -1])
+    opt_path[-1] = np.argmax(stp)
     for i in range(N-1, -1, -1):
         opt_path[i] = B[int(opt_path[i+1]), i]
 
