@@ -1,6 +1,6 @@
-NO I-VP
-Saints B-ADJP
-R I-ADJP
+NO B-INTJ
+Saints I-INTJ
+R I-INTJ
 . O
 Buch B-ADVP
 might B-VP
@@ -14,7 +14,7 @@ on B-PP
 Sunday B-NP
 ?? B-NP
 
-Polling I-CONJP
+Polling B-NP
 ends B-VP
 in B-PP
 Bihar B-NP
@@ -26,7 +26,7 @@ November B-NP
 24 I-NP
 http://toi.in/ujtwya B-NP
 
-Today I-NP
+Today B-NP
 has B-VP
 been I-VP
 a B-NP
@@ -44,7 +44,7 @@ You B-NP
 Lord B-VP
 ! B-NP
 
-man I-INTJ
+man B-INTJ
 my B-NP
 twin I-NP
 wanna B-VP
@@ -82,8 +82,8 @@ ces I-PP
 myself B-NP
 . B-NP
 
-@Team_Panic I-CONJP
-omg B-VP
+@Team_Panic B-INTJ
+omg I-INTJ
 , O
 i B-NP
 wish B-VP
@@ -122,8 +122,8 @@ lil I-NP
 brat B-PP
 . B-NP
 
-Amazon B-PRT
-U.K. B-PP
+Amazon B-PP
+U.K. I-PP
 Offering I-PP
 HTC I-PP
 Desire I-PP
@@ -148,7 +148,7 @@ Lo B-NP
 ... O
 http://bit.ly/bsyz9H B-NP
 
-Lmao B-SBAR
+Lmao B-INTJ
 .. O
 They B-NP
 #Hurrt I-NP
@@ -179,7 +179,7 @@ ass I-NP
 braids B-PP
 . B-NP
 
-@ O
+@ B-PP
 home B-NP
 chilling I-NP
 guess B-VP
@@ -202,8 +202,8 @@ for B-PP
 dis B-NP
 weekend I-NP
 
-On I-VP
-Thanksgiving B-PRT
+On B-PP
+Thanksgiving B-NP
 after B-PP
 you B-NP
 done B-VP
@@ -218,7 +218,7 @@ with B-PP
 the B-NP
 dishes I-NP
 
-Got I-VP
+Got B-VP
 another B-NP
 two I-NP
 box I-NP
@@ -249,7 +249,7 @@ of B-PP
 you B-NP
 ? B-NP
 
-tomorrow I-VP
+tomorrow B-NP
 no B-NP
 school I-NP
 for B-PP
@@ -265,7 +265,7 @@ tomorrow B-NP
 omg I-NP
 :/ O
 
-PREACH B-SBAR
+PREACH B-INTJ
 !! O
 RT O
 @DJRyan1der B-INTJ
@@ -295,7 +295,7 @@ outta B-PP
 here B-ADVP
 !!! B-NP
 
-The I-NP
+The B-NP
 guys I-NP
 are B-VP
 cooking I-NP
@@ -320,9 +320,9 @@ this B-NP
 place I-NP
 . B-NP
 
-Think B-CONJP
-I'ma I-CONJP
-make B-VP
+Think B-VP
+I'ma I-VP
+make I-VP
 @GrownWomanStuff I-VP
 have I-VP
 a B-NP
@@ -330,16 +330,16 @@ shoegasm B-VP
 today B-NP
 hahahaha I-NP
 
-even I-VP
-better B-ADJP
-than B-PP
-cocktail I-PP
+even B-ADVP
+better I-ADVP
+than I-ADVP
+cocktail B-SBAR
 friday B-NP
 ! O
 http://is.gd/ffDb9 B-NP
 
-I I-NP
-kept I-PP
+I B-NP
+kept B-PP
 telling I-PP
 niggers I-PP
 it'd I-PP
@@ -370,8 +370,8 @@ Im B-NP
 pleased B-VP
 . B-NP
 
-Shower I-SBAR
-time B-NP
+Shower B-NP
+time I-NP
 the B-NP
 flyin B-SBAR
 pilot I-SBAR
@@ -388,7 +388,7 @@ hot B-ADJP
 water B-NP
 uggghh I-NP
 
-@hime8644 B-PRT
+@hime8644 O
 LOL B-INTJ
 theres I-INTJ
 always B-ADVP
@@ -409,7 +409,7 @@ http://www.youtube.com/watch?v=8zJKZJ7TGlU I-INTJ
 OMG B-INTJ
 *DROOLS* O
 
-It I-CONJP
+It B-NP
 is B-VP
 Friday B-NP
 afternoon I-INTJ
@@ -444,9 +444,9 @@ OH I-PP
 BABY( I-PP
 : B-NP
 
-Pope I-NP
-says I-PP
-religion I-PP
+Pope B-NP
+says B-SBAR
+religion I-SBAR
 ' B-NP
 marginalized': B-VP
 That B-NP
@@ -469,7 +469,7 @@ mar I-ADJP
 ... O
 http://bit.ly/cBvt1u B-NP
 
-@ashhleybrookee I-SBAR
+@ashhleybrookee O
 it B-NP
 may B-VP
 be I-VP
@@ -552,12 +552,12 @@ scheme I-INTJ
 ... O
 http://bit.ly/blWf0e B-NP
 
-Friday I-NP
+Friday B-NP
 Night B-INTJ
 Eats I-INTJ
 http://twitpic.com/2pdvtr O
 
-I I-NP
+I B-NP
 remember B-VP
 when B-ADVP
 you B-NP
@@ -595,7 +595,7 @@ Jan B-NP
 6 I-NP
 http://fragurl.com/5P I-CONJP
 
-I I-NP
+I B-NP
 have B-VP
 a B-ADJP
 strong I-ADJP
@@ -612,7 +612,7 @@ tonight B-NP
 Gulp B-SBAR
 . B-NP
 
-WIN I-VP
+WIN B-VP
 FREE B-ADJP
 PAMPERS I-ADJP
 FOR B-PP
@@ -635,8 +635,8 @@ DAY I-VP
 EVER I-VP
 . B-NP
 
-A I-VP
-TRUE B-NP
+A B-NP
+TRUE I-NP
 friend I-NP
 walks I-NP
 in B-PP
@@ -647,8 +647,8 @@ walks I-ADVP
 out B-PP
 ! B-NP
 
-#Astros I-CONJP
-lineup B-VP
+#Astros B-ADJP
+lineup I-ADJP
 for B-PP
 tonight B-NP
 . O
@@ -698,8 +698,8 @@ that B-NP
 when B-ADVP
 ... B-NP
 
-Long I-VP
-18k I-VP
+Long B-NP
+18k B-VP
 run I-VP
 done B-VP
 and I-VP
@@ -765,7 +765,7 @@ day B-NP
 goin B-VP
 ? B-NP
 
-@PERSONGUY6661 I-SBAR
+@PERSONGUY6661 O
 I B-NP
 have B-VP
 n't I-VP
@@ -804,7 +804,7 @@ d I-NP
 time I-NP
 :-D I-CONJP
 
-@keancipriano B-PRT
+@keancipriano O
 hey B-INTJ
 :) I-INTJ
 where B-ADVP
@@ -816,7 +816,7 @@ tonight B-NP
 ? O
 :) O
 
-@YoDayDay B-PRT
+@YoDayDay O
 Nope B-INTJ
 ! O
 *lil B-PP
@@ -829,7 +829,7 @@ tonight B-NP
 !! O
 *hmph* B-NP
 
-@Phoebe1_ B-SBAR
+@Phoebe1_ B-INTJ
 and O
 i B-NP
 also B-ADVP
@@ -898,7 +898,7 @@ brooms I-ADJP
 @RUQuidditch I-INTJ
 #Rams O
 
-@yoopergirl89 B-PRT
+@yoopergirl89 O
 Yeah B-INTJ
 it B-NP
 was B-VP
@@ -920,7 +920,7 @@ Tuesday B-NP
 week I-NP
 . B-NP
 
-Day I-NP
+Day B-NP
 One B-NP
 : O
 Ten B-SBAR
@@ -947,7 +947,7 @@ freaking I-NP
 ... O
 http://tumblr.com/xmciuda0t B-NP
 
-Our I-NP
+Our B-NP
 Favorite I-NP
 YouTube I-PP
 Videos I-PP
@@ -959,7 +959,7 @@ Drama B-CONJP
 Edition I-CONJP
 http://dlvr.it/5RfHy B-VP
 
-I I-NP
+I B-NP
 just B-ADVP
 took B-VP
 " B-NP
@@ -989,7 +989,7 @@ it B-NP
 : O
 http://tinyurl.com/233u5lu B-NP
 
-My I-NP
+My B-NP
 first I-NP
 assignment I-NP
 was B-VP
@@ -1059,8 +1059,8 @@ Feb B-NP
 #purpleglasses B-SBAR
 http://twitpic.com/3nouem B-NP
 
-i I-VP
-see I-VP
+i B-NP
+see B-VP
 some B-NP
 ppl I-NP
 celebrating B-PP
@@ -1075,7 +1075,7 @@ year I-NP
 WTF B-INTJ
 ?! B-NP
 
-Class B-SBAR
+Class B-INTJ
 , O
 intelligence B-INTJ
 , O
@@ -1090,8 +1090,8 @@ these B-NP
 days I-NP
 . B-NP
 
-still I-VP
-fly I-VP
+still B-ADVP
+fly B-VP
 from B-PP
 yesterday B-NP
 .... O
@@ -1125,10 +1125,10 @@ scared B-VP
 " O
 #pow#pow#pow@Cowboy_Wingo B-NP
 
-Gotta I-CONJP
-love B-VP
-the B-NP
-bumper B-PP
+Gotta B-VP
+love B-NP
+the I-NP
+bumper I-PP
 stickers I-PP
 of I-PP
 Fayette I-PP
@@ -1191,9 +1191,9 @@ SECTION I-PP
 tonight B-NP
 !!!! B-NP
 
-@christinamarks_ I-CONJP
-u B-VP
-try I-VP
+@christinamarks_ O
+u B-NP
+try B-VP
 to I-VP
 be I-VP
 like B-PP
@@ -1201,8 +1201,8 @@ April B-NP
 on B-PP
 youtube B-NP
 
-@MeredithLim I-SBAR
-No B-NP
+@MeredithLim B-INTJ
+No I-INTJ
 . O
 Tomorrow B-NP
 . B-NP
@@ -1246,7 +1246,7 @@ friday B-NP
 . O
 #OMGwhatateen B-NP
 
-#blackholidays B-SBAR
+#blackholidays B-INTJ
 " O
 National B-NP
 forget B-VP
@@ -1309,7 +1309,7 @@ FRIDAY B-NP
 ! O
 :) O
 
-People I-SBAR
+People O
 who B-NP
 tweet B-VP
 to I-VP
@@ -1331,7 +1331,7 @@ you B-NP
 do B-VP
 ! B-NP
 
-Was I-SBAR
+Was O
 hard B-NP
 work B-VP
 going I-VP
@@ -1359,7 +1359,7 @@ on B-PP
 ufc B-NP
 now O
 
-@paulwalk I-SBAR
+@paulwalk O
 It B-NP
 's B-VP
 the B-NP
@@ -1401,12 +1401,12 @@ More B-NP
 - O
 http://ow.ly/2FwyX B-NP
 
-No I-INTJ
-bike I-INTJ
-t'day I-INTJ
+No B-NP
+bike I-NP
+t'day I-NP
 :( O
 
-bruise B-PRT
+bruise B-ADJP
 on B-PP
 my B-NP
 facee I-NP
@@ -1415,8 +1415,8 @@ wild B-INTJ
 night I-INTJ
 ! B-NP
 
-plez I-CONJP
-check B-VP
+plez B-VP
+check I-VP
 https://owensoto.wordpress.com/ B-PRT
 ( O
 my B-NP
@@ -1434,7 +1434,7 @@ u B-NP
 have B-VP
 time I-NP
 
-@jaredleto B-SBAR
+@jaredleto B-INTJ
 ... O
 ive B-NP
 been B-VP
@@ -1457,7 +1457,7 @@ queens I-ADJP
 :( B-INTJ
 (( O
 
-http://bit.ly/aTTQYq I-VP
+http://bit.ly/aTTQYq O
 When B-ADVP
 Pepsi B-VP
 to I-VP
