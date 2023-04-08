@@ -60,15 +60,12 @@ def viterbi(transitions, u, emissions, observations, train_o):
 
             B[j, i-1] = np.argmax(t)
 
-    # Fill stop
-    for i in range(K):
-        t = transitions_log[:, i] + V[:, -2]
-        V[i, -1] = np.max(t)
-        B[i, -1] = np.argmax(t)
+
+    stp = transitions_log[:, -1] + V[:, -2]
 
     # Backtracking
     opt_path = np.zeros(N+1).astype(np.int32)
-    opt_path[-1] = np.argmax(V[:, -1])
+    opt_path[-1] = np.argmax(stp)
     for i in range(N-1, -1, -1):
         opt_path[i] = B[int(opt_path[i+1]), i]
 
@@ -109,24 +106,14 @@ def part2(path='EN'):
     emissions, _, _, observed_values, hidden_states = generate_emission_matrix(
         f"{path}/train")
 
-    u = list(t_matrix.keys())
+    u = ['START'] + hidden_states
+    v = hidden_states + ['STOP']
     K = len(u)
     transitions = np.zeros((K, K))
 
-    starts = t_matrix['START']
-    start_keys = starts.keys()
-
-    for i, s in enumerate(start_keys):
-        transitions[0, i] = starts[s]
-
-    stops = [e['STOP'] for e in t_matrix.values()]
-
-    for i, s in enumerate(stops):
-        transitions[i, -1] = s
-
-    for i in range(1, K):
-        for j in range(K-1):
-            transitions[i][j] = t_matrix[hidden_states[i-1]][hidden_states[j]]
+    for i in range(K):
+        for j in range(K):
+            transitions[i][j] = t_matrix[u[i]][v[j]]
 
     emissions = prepare_emissions(emissions)
     transitions = prepare_transmission(transitions)
