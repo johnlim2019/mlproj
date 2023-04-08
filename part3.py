@@ -164,7 +164,7 @@ def get_test_data(path: str):
                 test_words.append(sentence)
                 sentence = []
             else:
-                sentence.append(line.replace("\n", "").lower())
+                sentence.append(line.replace("\n", ""))
     return test_words
 
 
@@ -179,16 +179,17 @@ def viterbi(transitions, emissions, input_sentence, hidden_state, train_o, emiss
 
     # init vertice and backtrack
     V = np.zeros((k, k, N+2))
-    B = np.zeros((k, k, N+1))  # from y0 to yn
+    B = np.zeros((k, k, N+1)).astype(np.int32)  # from y0 to yn
 
     # now we add to the vertice the START -> y1
     # From start it influences only one possible yi
     # START is index 0 for the i
     start = np.zeros((k, k))
-    start[:, 0] = 1
+    start[0, :] = 1
     start_log = np.log(start+eps)
     V[:, :, 0] = start_log + emissions_log[:, 0]
     # print(V.shape)
+    # print(translations_log.shape)
 
     # run the algorithm
     # i,j,k
@@ -197,9 +198,9 @@ def viterbi(transitions, emissions, input_sentence, hidden_state, train_o, emiss
         for i in range(k):  # y1
             for j in range(k):  # y2
                 # this i are the transitions of i,j to the all possible jk
-                start_state = hidden_state.copy()
-                start_state.append("START")
-                t_coeff = transmission_count[start_state[i]][hidden_state[j]]
+                # start_state = hidden_state.copy()
+                # start_state.append("START")
+                t_coeff = transmission_count[hidden_state[i]][hidden_state[j]]
                 t = translations_log[i, j, :] * t_coeff + V[i, j, i_seq-1]  # plus the previous
                 if ((obs := input_sentence[i_seq-1]) in train_o):
                     temp = np.max(t) + emissions_log[i, train_o.index(obs)] * emission_count[i][train_o.index(obs)]
@@ -209,35 +210,37 @@ def viterbi(transitions, emissions, input_sentence, hidden_state, train_o, emiss
                     V[i, j, i_seq] = temp + emissions_log[j, train_o.index(obs)] * emission_count[i][train_o.index(obs)]
                 else:
                     V[i, j, i_seq] = temp + emissions_log[j, train_o.index("#UNK#")] * emission_count[i][train_o.index("#UNK#")]
+                
                 # record index of the hidden state with highest t
                 B[i, j, i_seq-1] = np.argmax(t)
 
-    # add STOP
-    for i in range(k):
-        for j in range(k):
-            t = translations_log[i, j, :] + V[i, j, -1]
-            V[i, j, -1] = np.max(t)
-            B[i, j, -1] = np.argmax(t)
 
-    # print("hidden states " + str(hidden_state))
-    # print("sentence "+str(input_sentence))
-    # print(V)
-    # print(B)
+    # add STOP
+    try:
+        stop = translations_log[1:, :, -1] + V[:, :, -2]
+    except Exception as e:
+        print(e)
+        print("transition matrix "+str(translations_log.shape))
+        print("verice shape "+str(V.shape))
+        exit()
+        
     # backtracking over the B matrix
+    # print(stop.shape)
     predict_y = np.zeros(N)
-    predict_y[-1] = np.argmax(V[:,:,-1])
+    best2 = np.unravel_index(stop.argmax(), stop.shape)
+    predict_y[-1] = best2[0]
+    predict_y[-2] = best2[1]
+    # print(best2)
+    # exit()
+    
+    if predict_y[-1] > 18:
+        print('exit')
+        exit()
     for seq_i in range(N-3,-1,-1):
         y3 = int(predict_y[seq_i+2])
         y2 = int(predict_y[seq_i+1])
-        try:
-            predict_y[seq_i] = B[y2,y3,seq_i]
-        except Exception as e:
-            print(type(e).__name__+": "+e)
-            print(input_sentence)
-            print(predict_y)
-            print(y3)
-            print(y2)
-            exit()
+        predict_y[seq_i] = B[y2,y3,seq_i]
+        
         
     predict_y_str = []
     for i in predict_y:
@@ -265,6 +268,7 @@ def predict_file(trainingPath: str, testPath: str):
     ) = p1.generate_emission_matrix(trainingPath)
 
     print("hidden states "+str(hidden_states))
+    print(len(hidden_states))
     # sentences = [
     #     ["hi"],
     #     "hi there".split(),
@@ -288,12 +292,6 @@ def predict_file(trainingPath: str, testPath: str):
         for j in range(k):
             for jk in range(k+1):
                 transmission_matrix[i][j][jk] = transmission_matrix_dict[ith_hidden_state[i]][hidden_states[j]][jkth_hidden_state[jk]]
-    # for the start
-    # For start we have to use a separate matrix as it is only 1 dimension
-    # start to y1
-    start_y1 = np.zeros(k)
-    for i in range(k):
-        start_y1[i] = start_map["START"][hidden_states[i]]
 
     # now we have the emission and transition p matrices
     # we call viterbi for each sentence
