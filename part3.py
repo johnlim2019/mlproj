@@ -1,5 +1,4 @@
-import math
-import random
+import os
 from pprint import pprint
 
 import numpy as np
@@ -169,7 +168,7 @@ def get_test_data(path: str):
     return test_words
 
 
-def viterbi(transitions, emissions, input_sentence, hidden_state, train_o):
+def viterbi(transitions, emissions, input_sentence, hidden_state, train_o, emission_count, transmission_count):
     k = len(hidden_state)
     N = len(input_sentence)
 
@@ -198,15 +197,18 @@ def viterbi(transitions, emissions, input_sentence, hidden_state, train_o):
         for i in range(k):  # y1
             for j in range(k):  # y2
                 # this i are the transitions of i,j to the all possible jk
-                t = translations_log[i, j, :] + V[i, j, i_seq-1]  # plus the previous
+                start_state = hidden_state.copy()
+                start_state.append("START")
+                t_coeff = transmission_count[start_state[i]][hidden_state[j]]
+                t = translations_log[i, j, :] * t_coeff + V[i, j, i_seq-1]  # plus the previous
                 if ((obs := input_sentence[i_seq-1]) in train_o):
-                    temp = np.max(t) + emissions_log[i, train_o.index(obs)]
+                    temp = np.max(t) + emissions_log[i, train_o.index(obs)] * emission_count[i][train_o.index(obs)]
                 else:
-                    temp = np.max(t) + emissions_log[i, train_o.index("#UNK#")]
+                    temp = np.max(t) + emissions_log[i, train_o.index("#UNK#")] * emission_count[i][train_o.index("#UNK#")]
                 if ((obs := input_sentence[i_seq-2]) in train_o):
-                    V[i, j, i_seq] = temp + emissions_log[j, train_o.index(obs)]
+                    V[i, j, i_seq] = temp + emissions_log[j, train_o.index(obs)] * emission_count[i][train_o.index(obs)]
                 else:
-                    V[i, j, i_seq] = temp + emissions_log[j, train_o.index("#UNK#")]
+                    V[i, j, i_seq] = temp + emissions_log[j, train_o.index("#UNK#")] * emission_count[i][train_o.index("#UNK#")]
                 # record index of the hidden state with highest t
                 B[i, j, i_seq-1] = np.argmax(t)
 
@@ -240,11 +242,10 @@ def viterbi(transitions, emissions, input_sentence, hidden_state, train_o):
     predict_y_str = []
     for i in predict_y:
         predict_y_str.insert(0,hidden_state[int(i)-1])
-    print()
-    print(input_sentence)
-    print(predict_y)
-    # print(hidden_state)
-    print(predict_y_str)
+    # print()
+    # print(input_sentence)
+    # print(predict_y_str)
+    # print(predict_y)
     return predict_y_str, V, B
 
 def predict_file(trainingPath: str, testPath: str):
@@ -263,13 +264,14 @@ def predict_file(trainingPath: str, testPath: str):
         hidden_states
     ) = p1.generate_emission_matrix(trainingPath)
 
-    sentences = [
-        ["hi"],
-        "hi there".split(),
-        "last night was epic dude omg".split(),
-        "that was terrble and shit".split(),
-        "kfjsl slkdfjsk omg what is this".split()
-    ]
+    print("hidden states "+str(hidden_states))
+    # sentences = [
+    #     ["hi"],
+    #     "hi there".split(),
+    #     "last night was epic dude omg".split(),
+    #     "that was terrble and shit".split(),
+    #     "kfjsl slkdfjsk omg what is this".split()
+    # ]
 
     k = len(hidden_states)
     N = len(observed_values) - 1  # because one of them is #UNK#
@@ -295,10 +297,12 @@ def predict_file(trainingPath: str, testPath: str):
 
     # now we have the emission and transition p matrices
     # we call viterbi for each sentence
+    all_output = []
     for x in sentences:
-        viterbi(transmission_matrix,emission_matrix,x,hidden_states,observed_values)
-
-    return
+        output, V, B =viterbi(transmission_matrix,emission_matrix,x,hidden_states,observed_values, count_u_o_matrix, count_u0_u1_matrix)
+        all_output.append(output)
+    
+    return all_output
 
 
 def compile_dev_out(x_testdata: list, y_predictions: list, folder: str):
@@ -309,8 +313,8 @@ def compile_dev_out(x_testdata: list, y_predictions: list, folder: str):
     all_sentence_string = ""
     for ind, x_sentence in enumerate(x_testdata):
         y_sentence = y_predictions[ind]
-        y_sentence.remove("STOP")
-        y_sentence.remove("START")
+        # y_sentence.remove("STOP")
+        # y_sentence.remove("START")
         sentence_string = ""
         if ind > 0:
             sentence_string += "\n"
@@ -323,15 +327,19 @@ def compile_dev_out(x_testdata: list, y_predictions: list, folder: str):
         f.write(all_sentence_string)
     return
 
+def check_results(folder):
+    os.system("python3 ./EvalScript/evalResult.py ./"+folder+"/dev.out ./"+folder+"/dev.p3.out")
+    return
 
 if __name__ == "__main__":
     y_predict_all = predict_file("EN/train", "EN/dev.in")
-    exit()
+    # exit()
     x_test = get_test_data("EN/dev.in")
     # print(x_test[0])
     # print(y_predict_all[0])
     # print(len(y_predict_all[0]) - len(x_test[0]))
     compile_dev_out(x_test, y_predict_all, "EN")
+    check_results("EN")
 
     y_predict_all = predict_file("FR/train", "FR/dev.in")
     x_test = get_test_data("FR/dev.in")
@@ -339,3 +347,4 @@ if __name__ == "__main__":
     # print(y_predict_all[0])
     # print(len(y_predict_all[0]) - len(x_test[0]))
     compile_dev_out(x_test, y_predict_all, "FR")
+    check_results("FR")
