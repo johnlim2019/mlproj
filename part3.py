@@ -198,28 +198,24 @@ def viterbi(transitions, emissions, input_sentence, hidden_state, train_o):
         for i in range(k):  # y1
             for j in range(k):  # y2
                 # this i are the transitions of i,j to the all possible jk
-                try:
-                    t = translations_log[i, j, :] + V[i, j, i_seq-1]  # plus the previous
-                    if ((obs := input_sentence[i_seq-1]) in train_o):
-                        temp = np.max(t) + emissions_log[i, train_o.index(obs)]
-                    else:
-                        temp = np.max(t) + emissions_log[i, train_o.index("#UNK#")]
-                    if ((obs := input_sentence[i_seq-2]) in train_o):
-                        V[i, j, i_seq] = temp + emissions_log[j, train_o.index(obs)]
-                    else:
-                        V[i, j, i_seq] = temp + emissions_log[j, train_o.index("#UNK#")]
-                except:
-                    print(obs)
-                    print(train_o)
+                t = translations_log[i, j, :] + V[i, j, i_seq-1]  # plus the previous
+                if ((obs := input_sentence[i_seq-1]) in train_o):
+                    temp = np.max(t) + emissions_log[i, train_o.index(obs)]
+                else:
+                    temp = np.max(t) + emissions_log[i, train_o.index("#UNK#")]
+                if ((obs := input_sentence[i_seq-2]) in train_o):
+                    V[i, j, i_seq] = temp + emissions_log[j, train_o.index(obs)]
+                else:
+                    V[i, j, i_seq] = temp + emissions_log[j, train_o.index("#UNK#")]
                 # record index of the hidden state with highest t
                 B[i, j, i_seq-1] = np.argmax(t)
 
     # add STOP
     for i in range(k):
         for j in range(k):
-            t = translations_log[i, j, :] + V[i, j, -2]
+            t = translations_log[i, j, :] + V[i, j, -1]
             V[i, j, -1] = np.max(t)
-            B[i, j, -1] = np.max(t)
+            B[i, j, -1] = np.argmax(t)
 
     # print("hidden states " + str(hidden_state))
     # print("sentence "+str(input_sentence))
@@ -231,14 +227,23 @@ def viterbi(transitions, emissions, input_sentence, hidden_state, train_o):
     for seq_i in range(N-3,-1,-1):
         y3 = int(predict_y[seq_i+2])
         y2 = int(predict_y[seq_i+1])
-        predict_y[seq_i] = B[y2,y3,seq_i]
+        try:
+            predict_y[seq_i] = B[y2,y3,seq_i]
+        except Exception as e:
+            print(type(e).__name__+": "+e)
+            print(input_sentence)
+            print(predict_y)
+            print(y3)
+            print(y2)
+            exit()
         
     predict_y_str = []
     for i in predict_y:
         predict_y_str.insert(0,hidden_state[int(i)-1])
+    print()
     print(input_sentence)
     print(predict_y)
-    print(hidden_state)
+    # print(hidden_state)
     print(predict_y_str)
     return predict_y_str, V, B
 
@@ -280,8 +285,7 @@ def predict_file(trainingPath: str, testPath: str):
     for i in range(k+1):
         for j in range(k):
             for jk in range(k+1):
-                transmission_matrix[i][j][jk] = \
-                    transmission_matrix_dict[ith_hidden_state[i]][hidden_states[j]][jkth_hidden_state[jk]]
+                transmission_matrix[i][j][jk] = transmission_matrix_dict[ith_hidden_state[i]][hidden_states[j]][jkth_hidden_state[jk]]
     # for the start
     # For start we have to use a separate matrix as it is only 1 dimension
     # start to y1
