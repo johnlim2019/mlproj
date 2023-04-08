@@ -144,6 +144,7 @@ def get_transmission_matrix_2nd(
 def get_transmission_matrix_2nd_outer(path: str):
     # 2nd order transmission log likelihood from training data
     x2, y2 = get_train_data(path)
+    # y2 = y2[:50]
     y_states = p2.sentence_hidden_states_set(y2)
     count_u0_u1_map, start_count_map = count_u0_u1(y2, y_states)
     count_u0_u1_v_map, seq_triples, start_map = count_u0_u1_v(y2, y_states)
@@ -168,161 +169,87 @@ def get_test_data(path: str):
     return test_words
 
 
-def forward(x, start_map, start_count_map, observed_values, emission_matrix, hidden_states, count_u_o_matrix, transmission_matrix, count_u0_u1_matrix):
-    
+def viterbi(transitions, emissions, input_sentence, hidden_state, train_o):
+    k = len(hidden_state)
+    N = len(input_sentence)
 
-    # settling transmission from START
-    v_ls = list(start_map["START"].keys())
-    v_p = []
-    for u1 in start_map["START"].keys():
-        v_p.append(start_map["START"][u1])
+    # convert to log the transitions and emissions
+    eps = np.finfo(0.).tiny
+    translations_log = np.log(transitions+eps)
+    emissions_log = np.log(emissions+eps)
 
-    high_v = None
-    high_p = -math.inf
-    for index, v in enumerate(v_ls):
+    # init vertice and backtrack
+    V = np.zeros((k, k, N+2))
+    B = np.zeros((k, k, N+1))  # from y0 to yn
 
-        # settling emissions
-        o1 = x[0]
-        count_u0 = start_count_map["START"]
+    # now we add to the vertice the START -> y1
+    # From start it influences only one possible yi
+    # START is index 0 for the i
+    start = np.zeros((k, k))
+    start[:, 0] = 1
+    start_log = np.log(start+eps)
+    V[:, :, 0] = start_log + emissions_log[:, 0]
+    # print(V.shape)
 
-        if o1 not in observed_values:
-            o1 = unknown_tag
-        b1 = emission_matrix[hidden_states.index(
-            v)][observed_values.index(o1)]
-        count_u1_o1 = count_u_o_matrix[hidden_states.index(
-            v)][observed_values.index(o1)]
-        if b1 == 0:
-            # if the emission has not occured before this is the first time.
-            b1 = 1 / (len(observed_values) + 1)
-            count_u1_o1 = 1
+    # run the algorithm
+    # i,j,k
+    # y1,y2 -> y3
+    for i_seq in range(1, N+1):  # we already got x1
+        for i in range(k):  # y1
+            for j in range(k):  # y2
+                # this i are the transitions of i,j to the all possible jk
+                try:
+                    t = translations_log[i, j, :] + V[i, j, i_seq-1]  # plus the previous
+                    if ((obs := input_sentence[i_seq-1]) in train_o):
+                        temp = np.max(t) + emissions_log[i, train_o.index(obs)]
+                    else:
+                        temp = np.max(t) + emissions_log[i, train_o.index("#UNK#")]
+                    if ((obs := input_sentence[i_seq-2]) in train_o):
+                        V[i, j, i_seq] = temp + emissions_log[j, train_o.index(obs)]
+                    else:
+                        V[i, j, i_seq] = temp + emissions_log[j, train_o.index("#UNK#")]
+                except:
+                    print(obs)
+                    print(train_o)
+                # record index of the hidden state with highest t
+                B[i, j, i_seq-1] = np.argmax(t)
 
-        # if emission is known we do not want to stop the iteration
-        # find p, and continue
-        a = v_p[index]
-        if a == 0:
-            # if transmission is not known its p is small
-            # one out of all the possible outputs from START
-            a = 1 / len(v_ls)
-        p = count_u0 * np.log(a) + count_u1_o1 * np.log(b1)
-        if p > high_p:
-            high_p = p
-            high_v = v
-        a = v_p[index]
-        if a == 0:
-            # if transmission is not known its p is small
-            # one out of all the possible outputs from START
-            a = 1 / len(v_ls)
-        p = count_u0 * np.log(a) + count_u1_o1 * np.log(b1)
-        if p > high_p:
-            high_p = p
-            high_v = v
-            prev_v = "START"
-    # set up the sentence predidction
+    # add STOP
+    for i in range(k):
+        for j in range(k):
+            t = translations_log[i, j, :] + V[i, j, -2]
+            V[i, j, -1] = np.max(t)
+            B[i, j, -1] = np.max(t)
 
-    # iterating over the observable states
-    # for y1 to yn i.e guess the y2 given o2, y0, y1
-    # y_predict is a dict that maps the two previous hidden states to the possible hidden states
-    # key is the previous/parent state, value is the possible yi hidden state
-    y_predict = {} 
-    for index, x_1 in enumerate(x):
-        # add the previous hidden state
-        y_predict[prev_v][high_v] = hidden_states
-        # we have the guessed the first hidden state already. we start at o2
-        # to do so we skip the first observation states
-        if index == 0:
-            continue
-        high_p = -math.inf
-        high_v = None
-        # get observable element
-        o2 = x[index]
-        # check if emissions is known
-        if o2 not in observed_values:
-            o2 = unknown_tag
-
-        # get the y1,y2(u0,u1)
-        # print(y_predict)
-        u0 = list(y_predict.keys())[-2]
-        u1 = list(y_predict.keys())[-1]
-        # print()
-        # print(u1)
-        # get the list possible v/y2
-        possible_states = transmission_matrix[u0][u1]
-        # print(possible_states)
-        # from within the sentence iteration we cannot reach STOP, as they do not have observable states
-        # START is not one of the possible v states, it is not in this list alr
-        v_list = list(possible_states.keys())
-        v_list.remove("STOP")
-        for v in v_list:
-            b3 = emission_matrix[hidden_states.index(v)][observed_values.index(o2)]
-            count_v_o = count_u_o_matrix[hidden_states.index(v)][observed_values.index(o2)]
-            if b3 == 0:
-                # it has only occurred once count only 1
-                b3 = 1 / (len(observed_values) + 1)
-                count_v_o = 1
-
-            a = transmission_matrix[u0][u1][v]
-            count_u0 = count_u0_u1_matrix[u0][u1]
-            if a == 0:
-                # if transmission is not known its p is small
-                # one out of all the possible combinations of u0, u1
-                a = 1 / len(hidden_states) / len(hidden_states)
-            if count_u0 == 0:
-                # this is the first time we have observed it in respect to the training data aset
-                count_u0 = 1
-            p = count_u0 * np.log(a) + count_v_o * np.log(b3)
-            if p > high_p:
-                high_p = p
-                high_v = v
-
-
-    # exit sentence inner loop
-    # from the yn to stop there is only one possible log likelihood value.
-    # given yn-1, yn -> yn+1
-    # we only measure the last emission prob in the calculation,
-    u0 = list(y_predict.keys())[-2]
-    u1 = list(y_predict.keys())[-1]
-    v = "STOP"
-    o1 = x[-1]
-    # check if emissions is known
-    if o1 not in observed_values:
-        o1 = unknown_tag
-    b1 = emission_matrix[hidden_states.index(u1)][observed_values.index(o1)]
-    count_u1_o1 = count_u_o_matrix[hidden_states.index(u1)][observed_values.index(o1)]
-    if b1 == 0:
-        # it has only occurred once count only 1
-        b1 = 1 / (len(observed_values) + 1)
-        count_u1_o1 = 1
-
-    # find the transmission probabiltiy
-    if u0 == "START":
-        # this case is START y0 STOP
-        # if the first element is START
-        # in the transmission matrix START is only in pairs : START, U_1
-        # so adjust the way we request a value
-        a = start_map[u0][u1]
-        count_u0 = start_count_map[u0]
-    else:
-        a = transmission_matrix[u0][u1]["STOP"]
-        count_u0 = count_u0_u1_matrix[u0][u1]
-    if a == 0:
-        # if transmission is not known its p is small
-        # one out of all the possible y states
-        # as technically all states have a chance of ending sentence
-        a = 1 / len(hidden_states)
-    if count_u0 == 0:
-        # it only occurred once.
-        count_u0 = 1
-
-    p = count_u0 * np.log(a) + count_u1_o1 * np.log(b1)
-    y_predict
-    return y_predict
-
+    # print("hidden states " + str(hidden_state))
+    # print("sentence "+str(input_sentence))
+    # print(V)
+    # print(B)
+    # backtracking over the B matrix
+    predict_y = np.zeros(N)
+    predict_y[-1] = np.argmax(V[:,:,-1])
+    for seq_i in range(N-3,-1,-1):
+        y3 = int(predict_y[seq_i+2])
+        y2 = int(predict_y[seq_i+1])
+        predict_y[seq_i] = B[y2,y3,seq_i]
+        
+    predict_y_str = []
+    for i in predict_y:
+        predict_y_str.insert(0,hidden_state[int(i)-1])
+    print(input_sentence)
+    print(predict_y)
+    print(hidden_state)
+    print(predict_y_str)
+    return predict_y_str, V, B
 
 def predict_file(trainingPath: str, testPath: str):
     sentences = get_test_data(testPath)
-    transmission_matrix, count_u0_u1_matrix, start_map, start_count_map = get_transmission_matrix_2nd_outer(
-        trainingPath
-    )
+    (
+        transmission_matrix_dict,
+        count_u0_u1_matrix,
+        start_map,
+        start_count_map
+    ) = get_transmission_matrix_2nd_outer(trainingPath)
     (
         emission_matrix,
         count_u_o_matrix,
@@ -331,26 +258,43 @@ def predict_file(trainingPath: str, testPath: str):
         hidden_states
     ) = p1.generate_emission_matrix(trainingPath)
 
-    # sentences = [
-    #     ["hi"],
-    #     "hi there".split(),
-    #     "last night was epic dude omg".split(),
-    #     "that was terrble and shit".split(),
-    #     "kfjsl slkdfjsk omg what is this".split()
-    # ]
+    sentences = [
+        ["hi"],
+        "hi there".split(),
+        "last night was epic dude omg".split(),
+        "that was terrble and shit".split(),
+        "kfjsl slkdfjsk omg what is this".split()
+    ]
 
-    y_predict_all = []
+    k = len(hidden_states)
+    N = len(observed_values) - 1  # because one of them is #UNK#
+
+    # this is K+1 x K x K+1
+    # transition matrix in numpy array
+    # the additional rows are for the START and STOP
+    ith_hidden_state = hidden_states.copy()
+    ith_hidden_state.insert(0, "START")
+    jkth_hidden_state = hidden_states.copy()
+    jkth_hidden_state.append("STOP")
+    transmission_matrix = np.zeros((k+1, k, k+1))
+    for i in range(k+1):
+        for j in range(k):
+            for jk in range(k+1):
+                transmission_matrix[i][j][jk] = \
+                    transmission_matrix_dict[ith_hidden_state[i]][hidden_states[j]][jkth_hidden_state[jk]]
+    # for the start
+    # For start we have to use a separate matrix as it is only 1 dimension
+    # start to y1
+    start_y1 = np.zeros(k)
+    for i in range(k):
+        start_y1[i] = start_map["START"][hidden_states[i]]
+
+    # now we have the emission and transition p matrices
+    # we call viterbi for each sentence
     for x in sentences:
-        y_predict = forward(x, start_map, start_count_map, observed_values, emission_matrix,
-                            hidden_states, count_u_o_matrix, transmission_matrix, count_u0_u1_matrix)
-        y_predict_all.append(y_predict)
-        print(y_predict)
-        print(x)
+        viterbi(transmission_matrix,emission_matrix,x,hidden_states,observed_values)
 
-        # we completed one sentence, move to the next sentence.
-        # exit()
-    # print(log_likelihood)
-    return y_predict_all
+    return
 
 
 def compile_dev_out(x_testdata: list, y_predictions: list, folder: str):
@@ -376,46 +320,14 @@ def compile_dev_out(x_testdata: list, y_predictions: list, folder: str):
     return
 
 
-# def get_transmission_mle_2nd(triples:list,trans_matrix:dict,count_u0_u1_v_map:dict):
-#     # this returns the transmission log likelihood
-#     # sum of log(prob of u0,u1->v given u0,u1) * count(u0,u1)
-#     a_u0_u1_v = []
-#     coeff = []
-#     for i in triples:
-#         coeff.append(count_u0_u1_v_map[i[0]][i[1]][i[2]])
-#         # if trans_matrix[i[0]][i[1]][i[2]] > 1:
-#             # print(i)
-#             # print(trans_matrix[i[0]][i[1]][i[2]])
-#         a_u0_u1_v.append(trans_matrix[i[0]][i[1]][i[2]])
-#     a_u0_u1_v = np.multiply(np.log(a_u0_u1_v),coeff)
-#     # pprint(a_u0_u1_v)
-#     mle_val = np.sum(a_u0_u1_v)
-#     return a_u0_u1_v, mle_val
-
-# def get_log_likelihood_2nd(path:str):
-#     # joint log likelihood for transmission and emission
-#     em_q, em_mle = p2.get_em_likelihood_outer(path)
-
-#     # 2nd order transmission log likelihood
-#     x2,y2 = p2.get_train_data(path)
-#     y_states = p2.sentence_hidden_states_set(y2)
-#     count_u0_u1_map = count_u0_u1(y2,y_states)
-#     count_u0_u1_v_map,seq_triples = count_u0_u1_v(y2,y_states)
-#     # pprint(count_u0_u1_v_map)
-#     trans_matrix = get_transmission_matrix_2nd(count_u0_u1_v_map,count_u0_u1_map)
-#     transls, transmle = get_transmission_mle_2nd(seq_triples,trans_matrix,count_u0_u1_v_map)
-#     return transmle + em_mle
-
-
 if __name__ == "__main__":
     y_predict_all = predict_file("EN/train", "EN/dev.in")
-    # exit()
+    exit()
     x_test = get_test_data("EN/dev.in")
     # print(x_test[0])
     # print(y_predict_all[0])
     # print(len(y_predict_all[0]) - len(x_test[0]))
     compile_dev_out(x_test, y_predict_all, "EN")
-    exit()
 
     y_predict_all = predict_file("FR/train", "FR/dev.in")
     x_test = get_test_data("FR/dev.in")
