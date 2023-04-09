@@ -184,10 +184,10 @@ def viterbi(transitions, emissions, input_sentence, hidden_state, train_o, emiss
     # now we add to the vertice the START -> y1
     # From start it influences only one possible yi
     # START is index 0 for the i
-    start = np.zeros((k, k))
-    start[0, :] = 1
+    start = np.zeros(k)
+    start[0] = 1
     start_log = np.log(start+eps)
-    V[:, :, 0] = start_log + emissions_log[:, 0]
+    V[:, 0, 0] = start_log + emissions_log[:, 0]
     # print(V.shape)
     # print(translations_log.shape)
 
