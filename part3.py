@@ -1,11 +1,16 @@
 import os
 from pprint import pprint
-
+import math
+import pandas as pd
 import numpy as np
 import part1 as p1
 import part2 as p2
+import multiprocessing
+import pickle
+
 
 unknown_tag = "#UNK#"
+eps = np.finfo(0.0).tiny
 
 
 def get_train_data(train_path):
@@ -29,77 +34,76 @@ def get_train_data(train_path):
 
 
 def count_u0_u1_v(y: list, y_states: set):
-    # count the instances transmission
-    # count_u1_u0_v_map[y_i][y_i_1][y_i_2] = the count of the transmission
+    # count the instances transition
+    # count_u1_u0_v_map[y_i][y_i_1][y_i_2] = the count of the transition
     # the seq_triples each element is [y_i,y_i_1,y_i_2]
 
     # for START_map it is special map to help us find the first y1 from y0=START.
     # in the main map we include [y0][y1][y2] to measure the probability of seq that reaches y2
+
+    # to include the first START -> y1 transition
+    # we create prestart state so we can use the same matrix to include it in the 3d matrix
     seq_triples = []
     count_u1_u0_v_map = {}
-    start_map = {}
+    prestart = {"START": {}}
     y_i = y_states.copy()
     y_i.remove("STOP")
 
     y_i_1 = y_states.copy()
-    y_i_1.remove("START")
     y_i_1.remove("STOP")
+    y_i_1.remove("START")
 
     y_i_2 = y_states.copy()
     y_i_2.remove("START")
     for i in y_i:
-        if i == "START":
-            # for predicting the first y1 from start
-            start_map[i] = {}
         count_u1_u0_v_map[i] = {}
         for j in y_i_1:
-            if i == "START":
-                start_map[i][j] = 0
             count_u1_u0_v_map[i][j] = {}
+            prestart["START"][j] = eps
             for k in y_i_2:
-                count_u1_u0_v_map[i][j][k] = 0
+                count_u1_u0_v_map[i][j][k] = eps
+
     for i, v_i in enumerate(y):
-        if "START" in v_i:
-            # special case for START we only look one place in advanced.
-            # but we also want the START y1 y2 for transmmission for y2
-            v_i_1 = y[i + 1]
-            seq_triples.append([v_i, v_i_1])
-            start_map[v_i][v_i_1] += 1
         if "STOP" in v_i:
             # cannot move to another state from stop
             continue
         if i >= len(y) - 2:
             break  # cos we are reading two places in advance.
         v_i_1 = y[i + 1]
+        if "START" in v_i:
+            prestart["START"][v_i_1] += 1
         if "STOP" in v_i_1:
             continue
         v_i_2 = y[i + 2]
         seq_triples.append([v_i, v_i_1, v_i_2])
         count_u1_u0_v_map[v_i][v_i_1][v_i_2] += 1
+
+    # add the prestart
+    count_u1_u0_v_map["PRESTART"] = prestart
     # pprint(count_u1_u0_v_map)
-    return count_u1_u0_v_map, seq_triples, start_map
+    # exit()
+    return count_u1_u0_v_map, seq_triples
 
 
 def count_u0_u1(y: list, y_states: set):
-    # counts the instances where u0 and u1 pair are the dependent hidden states for a transmission change
+    # counts the instances where u0 and u1 pair are the dependent hidden states for a transition change
     # start map is for the counts for the first y1
     start_count_map = {}
     count_u0_u1_map = {}
 
     # print(y_states)
+    start_count_map["START"] = y.count("START")
     y_i = y_states.copy()
     y_i.remove("STOP")
     y_i_1 = y_states.copy()
     y_i_1.remove("START")
     y_i_1.remove("STOP")
     for i in y_i:
-        if "START" in i:
-            start_count_map[i] = 0
-            # this is a special case we only count number of start
         count_u0_u1_map[i] = {}
         for j in y_i_1:
             count_u0_u1_map[i][j] = 0
     # populate
+
     for i, v_i in enumerate(y):
         if "STOP" in v_i:
             # cannot move to another state from stop
@@ -109,21 +113,19 @@ def count_u0_u1(y: list, y_states: set):
         v_i_1 = y[i + 1]
         if "STOP" in v_i_1:
             continue  # cannot move to another state from stop
-        if "START" in v_i:
-            # START we are only guessing for the first v_i values, one state in advance.
-            # we count all number of starts
-            start_count_map[v_i] += 1
-        else:
-            count_u0_u1_map[v_i][v_i_1] += 1
-        # pprint(count_u0_u1_map)
+        count_u0_u1_map[v_i][v_i_1] += 1
+
+    # add the start and prestart
+    count_u0_u1_map["PRESTART"] = start_count_map
+    # pprint(count_u0_u1_map)
+    # print(y)
+    # exit()
     return count_u0_u1_map, start_count_map
 
 
-def get_transmission_matrix_2nd(
+def get_transition_matrix_2nd(
     count_u0_u1_v_map: dict,
     count_u0_u1_map: dict,
-    start_map: dict,
-    start_count_map: dict,
 ):
     # count_u1_u0_v_map[y_i][y_i_1][y_i_2] = prob of y_i,y_i_1 -> y_i_2 given y_i,y_i_1
     for u_0 in count_u0_u1_v_map.keys():
@@ -133,25 +135,20 @@ def get_transmission_matrix_2nd(
                 if divisor == 0:
                     continue
                 count_u0_u1_v_map[u_0][u_1][v] /= divisor
-    for start in start_map.keys():
-        divisor = start_count_map[start]
-        for v in start_map[start].keys():
-            start_map[start][v] /= divisor
-    return count_u0_u1_v_map, start_map
+
+    return count_u0_u1_v_map
 
 
-def get_transmission_matrix_2nd_outer(path: str):
-    # 2nd order transmission log likelihood from training data
+def get_transition_matrix_2nd_outer(path: str):
+    # 2nd order transition log likelihood from training data
     x2, y2 = get_train_data(path)
     # y2 = y2[:50]
     y_states = p2.sentence_hidden_states_set(y2)
     count_u0_u1_map, start_count_map = count_u0_u1(y2, y_states)
-    count_u0_u1_v_map, seq_triples, start_map = count_u0_u1_v(y2, y_states)
+    count_u0_u1_v_map, seq_triples = count_u0_u1_v(y2, y_states)
     # pprint(count_u0_u1_v_map)
-    trans_matrix, start_map = get_transmission_matrix_2nd(
-        count_u0_u1_v_map, count_u0_u1_map, start_map, start_count_map
-    )
-    return trans_matrix, count_u0_u1_map, start_map, start_count_map
+    trans_matrix = get_transition_matrix_2nd(count_u0_u1_v_map, count_u0_u1_map)
+    return trans_matrix, count_u0_u1_map
 
 
 def get_test_data(path: str):
@@ -164,145 +161,230 @@ def get_test_data(path: str):
                 test_words.append(sentence)
                 sentence = []
             else:
-                sentence.append(line.replace("\n", "").lower())
+                sentence.append(line.replace("\n", ""))
     return test_words
 
 
-def viterbi(transitions, emissions, input_sentence, hidden_state, train_o, emission_count, transmission_count):
+def viterbi(transitions, emissions, input_sentence, hidden_state, train_o, emission_count, transition_count):
     k = len(hidden_state)
-    N = len(input_sentence)
+    N = len(input_sentence) + 2
 
-    # convert to log the transitions and emissions
-    eps = np.finfo(0.).tiny
-    translations_log = np.log(transitions+eps)
-    emissions_log = np.log(emissions+eps)
+    y_predict_all = []
 
-    # init vertice and backtrack
-    V = np.zeros((k, k, N+2))
-    B = np.zeros((k, k, N+1))  # from y0 to yn
+    # create vertice matrix with pandas
+    hidden_state_ext = hidden_state.copy()
+    hidden_state_ext.extend(["START", "STOP", "PRESTART"])
+    state_combis = set()
+    for u in hidden_state_ext:
+        for u1 in hidden_state_ext:
+            if u == "PRESTART" and u1 != "START":
+                continue
+            if u != "PRESTART" and u1 == "START":
+                continue
+            if u == "START" and u1 == "STOP":
+                continue
+            if u1 == "PRESTART":
+                continue
+            state_combis.add((u, u1))
+    state_combis = list(state_combis)
+    V = pd.DataFrame(index=pd.MultiIndex.from_tuples(state_combis), columns=np.arange(N)).fillna(-math.inf)  # vertice map
+    # each vertice cell is the p of the combination
+    B = pd.DataFrame(index=pd.MultiIndex.from_tuples(state_combis), columns=np.arange(N))  # backtracker
 
-    # now we add to the vertice the START -> y1
-    # From start it influences only one possible yi
-    # START is index 0 for the i
-    start = np.zeros((k, k))
-    start[:, 0] = 1
-    start_log = np.log(start+eps)
-    V[:, :, 0] = start_log + emissions_log[:, 0]
-    # print(V.shape)
+    # set start
+    V.loc[[("PRESTART", "START")], 0] = 1
+    # print(V.to_string())
 
-    # run the algorithm
-    # i,j,k
-    # y1,y2 -> y3
-    for i_seq in range(1, N+1):  # we already got x1
-        for i in range(k):  # y1
-            for j in range(k):  # y2
-                # this i are the transitions of i,j to the all possible jk
-                start_state = hidden_state.copy()
-                start_state.append("START")
-                t_coeff = transmission_count[start_state[i]][hidden_state[j]]
-                t = translations_log[i, j, :] * t_coeff + V[i, j, i_seq-1]  # plus the previous
-                if ((obs := input_sentence[i_seq-1]) in train_o):
-                    temp = np.max(t) + emissions_log[i, train_o.index(obs)] * emission_count[i][train_o.index(obs)]
-                else:
-                    temp = np.max(t) + emissions_log[i, train_o.index("#UNK#")] * emission_count[i][train_o.index("#UNK#")]
-                if ((obs := input_sentence[i_seq-2]) in train_o):
-                    V[i, j, i_seq] = temp + emissions_log[j, train_o.index(obs)] * emission_count[i][train_o.index(obs)]
-                else:
-                    V[i, j, i_seq] = temp + emissions_log[j, train_o.index("#UNK#")] * emission_count[i][train_o.index("#UNK#")]
-                # record index of the hidden state with highest t
-                B[i, j, i_seq-1] = np.argmax(t)
+    # forward pass
+    for i in range(1, N - 1):  # iterate over the remaining visible vars excluding STOP
+        word_index = i - 1
+        x = input_sentence[word_index]
+        if x not in train_o:
+            x = "#UNK#"
+        for v in hidden_state:  # curr state
+            for u1 in hidden_state_ext:
+                for u0 in hidden_state_ext:
+                    try:
+                        emissions_p = np.log(emissions[hidden_state.index(v), train_o.index(x)]) * emission_count[hidden_state.index(v), train_o.index(x)]
+                    except Exception as e:
+                        print(hidden_state)
+                        print(e)
+                        print(v)
+                        print(u0)
+                        print(u1)
+                        exit()
+                    try:
+                        p = transitions[u0][u1][v]
+                    except:
+                        # often this means that it is an impossible transition
+                        continue
+                    transition_p = np.log(p) * transition_count[u0][u1]
 
-    # add STOP
-    for i in range(k):
-        for j in range(k):
-            t = translations_log[i, j, :] + V[i, j, -1]
-            V[i, j, -1] = np.max(t)
-            B[i, j, -1] = np.argmax(t)
-
-    # print("hidden states " + str(hidden_state))
-    # print("sentence "+str(input_sentence))
-    # print(V)
-    # print(B)
-    # backtracking over the B matrix
-    predict_y = np.zeros(N)
-    predict_y[-1] = np.argmax(V[:,:,-1])
-    for seq_i in range(N-3,-1,-1):
-        y3 = int(predict_y[seq_i+2])
-        y2 = int(predict_y[seq_i+1])
-        try:
-            predict_y[seq_i] = B[y2,y3,seq_i]
-        except Exception as e:
-            print(type(e).__name__+": "+e)
-            print(input_sentence)
-            print(predict_y)
-            print(y3)
-            print(y2)
-            exit()
-        
-    predict_y_str = []
-    for i in predict_y:
-        predict_y_str.insert(0,hidden_state[int(i)-1])
-    # print()
+                    p = V.loc[[(u0, u1)], i - 1] + emissions_p + transition_p
+                    p = np.float64(p)
+                    if (p > V.loc[[(u1, v)], i]).bool():
+                        V.loc[[(u1, v)], i] = p
+                        B.loc[[(u1, v)], i] = u0
+                        # print(V.loc[[(u0, u1)], i])
+                        # print(p)
+                        # print(u0)
+                        # print(i)
+    # add stop here we only use the transition prob
+    j = N - 1
+    v = "STOP"
+    for u1 in hidden_state:
+        for u0 in hidden_state:
+            try:
+                p = transitions[u0][u1][v]
+            except:
+                # often this means that it is an impossible transition
+                print("F")
+                continue
+            transition_p = np.log(p) * transition_count[u0][u1]
+            p = V.loc[[(u0, u1)], j - 1] * transition_p
+            # print(V.loc[[(u1,v)],j])
+            p = np.float64(p)
+            if (p > V.loc[[(u1, v)], j]).bool():
+                V.loc[[(u1, v)], j] = p
+                B.loc[[(u1, v)], j] = u0
+    V.to_csv("v.csv")
+    B.to_csv("b.csv")
+    print(input_sentence)
+    # backtracking
+    # we go back states each iteration,
+    # each cell is the second back spot
+    y_predict = []
+    curr_u1_v = V[N - 1].idxmax()
+    for i in range(N - 1, 0, -1):
+        next_state = B.loc[curr_u1_v][i]
+        if isinstance(next_state, str):
+            y_predict.insert(0, curr_u1_v[1])
+            curr_u1_v = (next_state, curr_u1_v[0])
+        else:
+            # cannot reach START
+            for j in range(int(i)):
+                y_predict.insert(0, ("0"))
+            break
+    # print(y_predict)
+    y_predict = y_predict[:-1]
+    print(y_predict)
     # print(input_sentence)
-    # print(predict_y_str)
-    # print(predict_y)
-    return predict_y_str, V, B
+    y_predict_all.append(y_predict)
+    return y_predict_all
+
+
+def viterbi_loop(transition_matrix_dict, emission_matrix, sentences, hidden_states, observed_values, count_u_o_matrix, count_u0_u1_matrix, output):
+    for s in sentences:
+        out_i = viterbi(
+            transition_matrix_dict,
+            emission_matrix,
+            s,
+            hidden_states,
+            observed_values,
+            count_u_o_matrix,
+            count_u0_u1_matrix,
+        )
+        output.extend(out_i)
+    return output
+
+def split_list(sentences):
+    size = math.ceil(len(sentences) / 6)
+    print(size) 
+    lastsize= len(sentences) - 5 * size
+    print(lastsize)
+    s = []
+    while sentences:
+        chunk, sentences = sentences[:size], sentences[size:]
+        s.append(chunk)
+        # print(chunk)
+    return s[0],s[1],s[2],s[3],s[4],s[5]
+
 
 def predict_file(trainingPath: str, testPath: str):
     sentences = get_test_data(testPath)
     (
-        transmission_matrix_dict,
+        transition_matrix_dict,
         count_u0_u1_matrix,
-        start_map,
-        start_count_map
-    ) = get_transmission_matrix_2nd_outer(trainingPath)
+    ) = get_transition_matrix_2nd_outer(trainingPath)
     (
         emission_matrix,
         count_u_o_matrix,
         hidden_state_counter,
         observed_values,
-        hidden_states
+        hidden_states,
     ) = p1.generate_emission_matrix(trainingPath)
 
-    print("hidden states "+str(hidden_states))
+    # add min value to emissions so we can log
+    emission_matrix += eps
+
+    print("hidden states " + str(hidden_states))
+    print(len(hidden_states))
     # sentences = [
+    #     "holy shit ! are you kidding ! shitstorm".split(),
     #     ["hi"],
     #     "hi there".split(),
     #     "last night was epic dude omg".split(),
     #     "that was terrble and shit".split(),
-    #     "kfjsl slkdfjsk omg what is this".split()
+    #     "kfjsl slkdfjsk omg what is this".split(),
     # ]
 
-    k = len(hidden_states)
     N = len(observed_values) - 1  # because one of them is #UNK#
-
-    # this is K+1 x K x K+1
-    # transition matrix in numpy array
-    # the additional rows are for the START and STOP
-    ith_hidden_state = hidden_states.copy()
-    ith_hidden_state.insert(0, "START")
-    jkth_hidden_state = hidden_states.copy()
-    jkth_hidden_state.append("STOP")
-    transmission_matrix = np.zeros((k+1, k, k+1))
-    for i in range(k+1):
-        for j in range(k):
-            for jk in range(k+1):
-                transmission_matrix[i][j][jk] = transmission_matrix_dict[ith_hidden_state[i]][hidden_states[j]][jkth_hidden_state[jk]]
-    # for the start
-    # For start we have to use a separate matrix as it is only 1 dimension
-    # start to y1
-    start_y1 = np.zeros(k)
-    for i in range(k):
-        start_y1[i] = start_map["START"][hidden_states[i]]
-
-    # now we have the emission and transition p matrices
-    # we call viterbi for each sentence
-    all_output = []
-    for x in sentences:
-        output, V, B =viterbi(transmission_matrix,emission_matrix,x,hidden_states,observed_values, count_u_o_matrix, count_u0_u1_matrix)
-        all_output.append(output)
-    
-    return all_output
+    print(len(sentences))
+    all_predicts = []
+    s1,s2,s3,s4,s5,s6 = split_list(sentences)
+    out1 = multiprocessing.Manager().list()
+    out2 = multiprocessing.Manager().list()
+    out3 = multiprocessing.Manager().list()
+    out4 = multiprocessing.Manager().list()
+    out5 = multiprocessing.Manager().list()
+    out6 = multiprocessing.Manager().list()
+    t1 = multiprocessing.Process(
+        target=viterbi_loop,
+        args=(transition_matrix_dict, emission_matrix, s1, hidden_states, observed_values, count_u_o_matrix, count_u0_u1_matrix, out1),
+    )
+    t2 = multiprocessing.Process(
+        target=viterbi_loop,
+        args=(transition_matrix_dict, emission_matrix, s2, hidden_states, observed_values, count_u_o_matrix, count_u0_u1_matrix, out2),
+    )
+    t3 = multiprocessing.Process(
+        target=viterbi_loop,
+        args=(transition_matrix_dict, emission_matrix, s3, hidden_states, observed_values, count_u_o_matrix, count_u0_u1_matrix, out3),
+    )
+    t4 = multiprocessing.Process(
+        target=viterbi_loop,
+        args=(transition_matrix_dict, emission_matrix, s4, hidden_states, observed_values, count_u_o_matrix, count_u0_u1_matrix, out4),
+    )
+    t5 = multiprocessing.Process(
+        target=viterbi_loop,
+        args=(transition_matrix_dict, emission_matrix, s5, hidden_states, observed_values, count_u_o_matrix, count_u0_u1_matrix, out5),
+    )
+    t6 = multiprocessing.Process(
+        target=viterbi_loop,
+        args=(transition_matrix_dict, emission_matrix, s6, hidden_states, observed_values, count_u_o_matrix, count_u0_u1_matrix, out6),
+    )
+    t1.start()
+    t2.start()
+    t3.start()
+    t4.start()
+    t5.start()
+    t6.start()
+    print("STARTED ALL PROCESSES")
+    t2.join()
+    t1.join()
+    t3.join()
+    t4.join()
+    t5.join()
+    t6.join()
+    t1.terminate()
+    t2.terminate()
+    t3.terminate()
+    t4.terminate()
+    t5.terminate()
+    t6.terminate()
+    print(out1)
+    all_predicts = list(out1) + list(out2) + list(out3) + list(out4) + list(out5) + list(out6)
+    pprint(len(all_predicts))
+    return all_predicts
 
 
 def compile_dev_out(x_testdata: list, y_predictions: list, folder: str):
@@ -312,7 +394,10 @@ def compile_dev_out(x_testdata: list, y_predictions: list, folder: str):
     # this is a nested list, list of sentence list
     all_sentence_string = ""
     for ind, x_sentence in enumerate(x_testdata):
+        # print(ind)
+        # print(x_sentence)
         y_sentence = y_predictions[ind]
+        # print(y_sentence)
         # y_sentence.remove("STOP")
         # y_sentence.remove("START")
         sentence_string = ""
@@ -327,22 +412,31 @@ def compile_dev_out(x_testdata: list, y_predictions: list, folder: str):
         f.write(all_sentence_string)
     return
 
+
 def check_results(folder):
-    os.system("python3 ./EvalScript/evalResult.py ./"+folder+"/dev.out ./"+folder+"/dev.p3.out")
+    os.system("python3 ./EvalScript/evalResult.py ./" + folder + "/dev.out ./" + folder + "/dev.p3.out")
     return
+
 
 if __name__ == "__main__":
     y_predict_all = predict_file("EN/train", "EN/dev.in")
-    # exit()
+    with open("./EN_y.pkl",'wb') as f:
+        pickle.dump(y_predict_all,f)
+    with open("./EN_y.pkl",'rb') as f:
+        y_predict_all = pickle.load(f)
     x_test = get_test_data("EN/dev.in")
-    # print(x_test[0])
-    # print(y_predict_all[0])
-    # print(len(y_predict_all[0]) - len(x_test[0]))
+    print(len(y_predict_all))
+    print(len(y_predict_all) - len(x_test))
     compile_dev_out(x_test, y_predict_all, "EN")
     check_results("EN")
 
     y_predict_all = predict_file("FR/train", "FR/dev.in")
+    with open("./FR_y.pkl",'wb') as f:
+        pickle.dump(y_predict_all,f)
+    with open("./FR_y.pkl",'rb') as f:
+        y_predict_all = pickle.load(f)
     x_test = get_test_data("FR/dev.in")
+    print(len(x_test))
     # print(x_test[0])
     # print(y_predict_all[0])
     # print(len(y_predict_all[0]) - len(x_test[0]))
