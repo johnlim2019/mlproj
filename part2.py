@@ -225,5 +225,5 @@ if __name__ == '__main__':
     try:
         lang_path = sys.argv[1]
     except:
-        print("Please provide a language path as an argument (python part2.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
+        sys.exit("Please provide a language path as an argument (python part2.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
     part2(lang_path)

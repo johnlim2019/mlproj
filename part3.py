@@ -228,7 +228,7 @@ if __name__ == '__main__':
     try:
         lang_path = sys.argv[1]
     except:
-        print("Please provide a language path as an argument (python part3.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
+        sys.exit("Please provide a language path as an argument (python part3.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
 
     transitions, states, emissions, emission_words, emission_states = train(
         lang_path)
