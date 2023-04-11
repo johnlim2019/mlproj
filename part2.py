@@ -1,7 +1,8 @@
 from pprint import pprint
-import part1 as p1
+from part1 import generate_emission_matrix
 import numpy as np
-
+import os
+import sys
 
 
 def get_train_data(train_path):
@@ -10,9 +11,9 @@ def get_train_data(train_path):
     x = ['START']
     y = ['START']
     with open(train_path, 'r') as file:
-        lineCounter = 0 
+        lineCounter = 0
         for line in file.readlines():
-            if(len(line.rstrip().split()) == 0):
+            if (len(line.rstrip().split()) == 0):
                 if lineCounter > 0:
                     y.append("STOP")
                     y.append("START")
@@ -24,22 +25,24 @@ def get_train_data(train_path):
             lineCounter += 1
     return x, y
 
-def sentence_hidden_states_set(y)->set:    
+
+def sentence_hidden_states_set(y) -> set:
     return set(y)
 
-def count_u(y,states_y)->dict:
+
+def count_u(y, states_y) -> dict:
     # return dict of the number of each state in sentence
     count_u_map = {}
-    for state in states_y:        
+    for state in states_y:
         count_u_map[state] = y.count(state)
     return count_u_map
 
 
-def count_u_v_1st(y:list,y_states:set):
+def count_u_v_1st(y: list, y_states: set):
     # count the instances of U->V in first order and return the count in a dict
-    # format: 
-    # count_u_v_map[y_i][y_i+1] 
-    # set up the map 
+    # format:
+    # count_u_v_map[y_i][y_i+1]
+    # set up the map
     # y_i cannot include stop we cannot move to another state from stop
     # y_i+1 cannot include start we cannot move from any state to start
     seq_pairs = []
@@ -52,119 +55,175 @@ def count_u_v_1st(y:list,y_states:set):
     for i in y_i:
         count_u_v_map[i] = {}
         for j in y_i_1:
-            count_u_v_map[i][j] = 0;
+            count_u_v_map[i][j] = 0
     # pprint(count_u_v_map)
     # count the state changes
-    for i,v_i in enumerate(y):
+    for i, v_i in enumerate(y):
         if "STOP" in v_i:
             # cannot move to another state from stop
             continue
         if i >= len(y)-1:
             # print(v_i)
             break
-        v_i_1 = y[i+1]        
-        seq_pairs.append([v_i,v_i_1])
+        v_i_1 = y[i+1]
+        seq_pairs.append([v_i, v_i_1])
         count_u_v_map[v_i][v_i_1] += 1
     # pprint(count_u_v_map)
     return count_u_v_map, seq_pairs
 
-def get_transmission_matrix(count_u_v_map:dict,count_u_map:dict):
+
+def get_transmission_matrix(count_u_v_map: dict, count_u_map: dict):
     # return the matrix containing the probability of u->v given u
     # it returns a dict map[u][v] = prob of u->v given u
     for u_i in count_u_v_map.keys():
         divisor = count_u_map[u_i]
         for v_i in count_u_v_map[u_i].keys():
-            count_u_v_map[u_i][v_i] /=divisor
+            count_u_v_map[u_i][v_i] /= divisor
     # pprint(count_u_v_map)
     return count_u_v_map
 
-def get_transmission_matrix_outer(path:str):
+
+def get_transmission_matrix_outer(path: str):
     # returns the transmission probability matrix based on training data
-    x2,y2 = get_train_data(path)
+    x2, y2 = get_train_data(path)
     y_states = sentence_hidden_states_set(y2)
-    count_u_map = count_u(y2,y_states)
-    count_u_v_map, train_seq_pairs = count_u_v_1st(y2,y_states)
-    transmission_matrix = get_transmission_matrix(count_u_v_map,count_u_map)
+    count_u_map = count_u(y2, y_states)
+    count_u_v_map, train_seq_pairs = count_u_v_1st(y2, y_states)
+    transmission_matrix = get_transmission_matrix(count_u_v_map, count_u_map)
     return transmission_matrix
-    
-    
-
-# can ignore 
-# def get_transmission_mle(pairs:list,trans_matrix:dict,count_u_v_map:dict):
-#     # returns the list containing all the values to be summed to get the log likelihood
-#     # the it also returns the log-likelihood. 
-#     # it iterates over the pairs of u->v transitions and sums the log(q_u_v)*count(u,v)
-#     q_u_v = []
-#     coeff = []
-#     for i in pairs:
-#         coeff.append(count_u_v_map[i[0]][i[1]])
-#         q_u_v.append(trans_matrix[i[0]][i[1]])
-#     # print(q_u_v)
-#     q_u_v = np.multiply(np.log(q_u_v),coeff)
-#     # print(q_u_v)
-#     mle_val = np.sum(q_u_v)
-#     return  q_u_v, mle_val
-
-# def get_emission_mle(x:list,y:list,emission_matrix,counts_matrix,observed_values:list,hidden_states:list):
-#     # it needs the counts_matrix which contains the number of u->o
-#     # it needs the emission matrix which contains the prob of u->o given u
-#     # finds the cell using matrix[hidden_states.index(u)][observed_values.index(o)]
-#     # returns the list of all the elements to be summed
-#     # returns the log-likelihood of the emission probability.     
-#     b_u_o= []
-#     coeff = []
-#     for i,u in enumerate(y):
-#         o = x[i]
-#         u_i = hidden_states.index(u)
-#         o_i = observed_values.index(o)
-#         b_u_o_i = emission_matrix[u_i][o_i]
-#         b_u_o.append(b_u_o_i)
-#         coeff.append(counts_matrix[u_i][o_i])
-#         # if np.isnan(b_u_o):
-#         #     print(u_i,o_i)
-#         #     print(u + "->"+ o)
-#         #     print(type(b_u_o))
-#         #     print(b_u_o)
-#     # pprint(b_u_o)
-#     # print("coefficient")
-#     # pprint(coeff)
-#     b_u_o_log = np.multiply(np.log(b_u_o),coeff) # log(0) is inf and when multiplied returns nan
-#     b_u_o_log = np.nan_to_num(b_u_o_log)# nan to 0
-#     mle_val = sum(b_u_o_log) 
-#     # pprint(b_u_o[:100])
-#     # pprint(b_u_o_log[:100])
-#     # print(mle_val)
-#     return  b_u_o_log,mle_val
-
-# def get_trans_likelihood_outer(path:str):
-#     # this is a outer function that finds the transmission log likelihood from the filepath provided
-#     x2,y2 = get_train_data(path)
-#     y_states = sentence_hidden_states_set(y2)
-#     count_u_map = count_u(y2,y_states)
-#     count_u_v_map, train_seq_pairs = count_u_v_1st(y2,y_states)
-#     transmission_matrix = get_transmission_matrix(count_u_v_map,count_u_map)
-#     q, mle_trans = get_transmission_mle(train_seq_pairs,transmission_matrix,count_u_v_map)
-#     return q, mle_trans
-
-# def get_em_likelihood_outer(path:str):
-#     # this is a outer function that finds the emission log likelihood from the filepath provided
-#     x,y = p1.get_data(path)
-#     emission_matrix, counts_matrix ,hidden_state_counter, observed_values, hidden_states = p1.generate_emission_matrix(path)
-#     emls,emle = get_emission_mle(x,y,emission_matrix,counts_matrix,observed_values,hidden_states)
-#     return emls, emle
-
-# def get_log_likelihood_outer(path:str):
-#     # this is a outer function that finds the joint log likelihood of transmission and emission from the filepath provided
-#     em_q, em_mle = get_em_likelihood_outer(path)
-#     tr_q, tr_mle = get_trans_likelihood_outer(path)
-#     return em_mle + tr_mle
-
-if __name__ == '__main__':   
-    tr_q, tr_mle = get_trans_likelihood_outer("EN/train")
-    print("Part2 Part A: MLE of transmission prob: "+str(tr_mle))
-
-    print(get_log_likelihood_outer("EN/train"))
 
 
+def prepare_transmission(t):
+    '''
+    Append col of zero to left, row of zero to bottom for transmission
+    '''
+    t = np.concatenate((np.zeros((t.shape[0], 1)), t), axis=1)
+    t = np.concatenate((t, np.zeros((1, t.shape[1]))), axis=0)
+
+    return t
 
 
+def prepare_emissions(e):
+    '''
+    Append row of zero to bottom, append row of zero with first element 1 to top to emissions
+    '''
+    fr = np.zeros((1, e.shape[1]))
+    fr[0, 0] = 1
+    e = np.concatenate((fr, e), axis=0)
+    e = np.concatenate((e, np.zeros((1, e.shape[1]))))
+    return e
+
+
+def viterbi(transitions, u, emissions, observations, train_o):
+    # Number of states
+    K = len(u)
+    # Length of observation sequences
+    N = len(observations)
+
+    # Initialize probability and backtracking matrices
+    V = np.zeros((K, N+2))
+    B = np.zeros((K, N+1)).astype(np.int32)
+
+    C = np.array(np.zeros(K))
+    C[0] = 1
+
+    # Convert to log
+    eps = np.finfo(0.).tiny
+    transitions_log = np.log(transitions+eps)
+    emissions_log = np.log(emissions+eps)
+    C_log = np.log(C+eps)
+
+    V[:, 0] = C_log + emissions_log[:, 0]
+
+    # Fill Viterbi and backtracking matrices
+    for i in range(1, N+1):
+        for j in range(K):
+            t = transitions_log[:, j] + V[:, i-1]
+
+            # Multiply by the emission probability of currently considered node.
+            if ((obs := observations[i-1]) in train_o):
+                V[j, i] = np.max(t) + emissions_log[j, train_o.index(obs)]
+            else:
+                V[j, i] = np.max(t) + emissions_log[j, train_o.index('#UNK#')]
+
+            B[j, i-1] = np.argmax(t)
+
+    stp = transitions_log[:, -1] + V[:, -2]
+
+    # Backtracking
+    opt_path = np.zeros(N+1).astype(np.int32)
+    opt_path[-1] = np.argmax(stp)
+    for i in range(N-1, -1, -1):
+        opt_path[i] = B[int(opt_path[i+1]), i]
+
+    return opt_path, V, B
+
+
+def write_results(observations, states, opt_path, file_path='./dev.p2.out'):
+    with open(file_path, 'a+', encoding='UTF-8') as f:
+        for i, t in enumerate(opt_path[1:]):
+            f.write(f'{observations[i]} {states[t]}\n')
+
+        f.write('\n')
+
+
+def get_observed(test_path):
+    '''
+    Return a list of list of tweets.
+    '''
+    with open(test_path, 'r', encoding='UTF-8') as f:
+        res = []
+        tweet = []
+        for line in f:
+            line = line.strip()
+            if len(line) == 0:
+                res.append(tweet)
+                tweet = []
+            else:
+                tweet.append(line)
+
+    return res
+
+
+def part2(path='EN'):
+    test_obs_ls = get_observed(f'{path}/dev.in')
+    t_matrix = get_transmission_matrix_outer(f"{path}/train")
+
+    TEST_OUTPUT = f'{path}/dev.p2.out'
+    emissions, _, _, observed_values, hidden_states = generate_emission_matrix(
+        f"{path}/train")
+
+    u = ['START'] + hidden_states
+    v = hidden_states + ['STOP']
+    K = len(u)
+    transitions = np.zeros((K, K))
+
+    for i in range(K):
+        for j in range(K):
+            transitions[i][j] = t_matrix[u[i]][v[j]]
+
+    emissions = prepare_emissions(emissions)
+    transitions = prepare_transmission(transitions)
+    states = hidden_states
+    states.insert(0, 'START')
+    states.append('STOP')
+
+    if os.path.exists(TEST_OUTPUT):
+        os.remove(TEST_OUTPUT)
+
+    # For each tweet, decode.
+    for test_obs in test_obs_ls:
+        opt_path, dp, backtrack = viterbi(
+            transitions, states, emissions, test_obs, observed_values)
+
+        write_results(test_obs, states, opt_path, TEST_OUTPUT)
+
+    return opt_path
+
+
+if __name__ == '__main__':
+    try:
+        lang_path = sys.argv[1]
+    except:
+        sys.exit("Please provide a language path as an argument (python part2.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
+    part2(lang_path)
