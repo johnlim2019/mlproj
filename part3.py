@@ -56,7 +56,7 @@ def fit_transitions_second_order(train_path):
     transitions_second_order = {}
     unique_states = set()
     unique_states.add('STOP')
-    with open(train_path, 'r') as f:
+    with open(train_path, 'r', encoding='utf-8') as f:
         t = 'PRE_START'
         u = 'START'
         unique_states.add(t)
@@ -206,8 +206,8 @@ def test(lang_path, transitions, states, emissions, emission_words, emission_sta
     test_path = f"./{lang_path}/dev.in"
     output_path = f"./{lang_path}/dev.p3.out"
 
-    with open(test_path, 'r') as f:
-        with open(output_path, 'w') as out:
+    with open(test_path, 'r', encoding='utf-8') as f:
+        with open(output_path, 'w', encoding='utf-8') as out:
             tweet = []
             lines = f.readlines()
             for line in tqdm(lines):
@@ -228,7 +228,7 @@ if __name__ == '__main__':
     try:
         lang_path = sys.argv[1]
     except:
-        sys.exit("Please provide a language path as an argument (python part3.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
+        print("Please provide a language path as an argument (python part3.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
 
     transitions, states, emissions, emission_words, emission_states = train(
         lang_path)
