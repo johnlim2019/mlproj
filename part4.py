@@ -10,10 +10,10 @@ stop_words = set(stopwords.words('english'))
 
 
 # read training set and remove words that are stopwords
-def filter_train_data(path, stop_words):
+def filter_train_data(lang, stop_words):
     X = []
     y = []
-    with open(f'{path}/train', 'r', encoding='utf-8') as f:
+    with open(f'{lang}/train', 'r', encoding='utf-8') as f:
         for line in f.readlines():
             if (len(line.rstrip().split()) == 0):
                 pass
@@ -26,16 +26,26 @@ def filter_train_data(path, stop_words):
     return X, y
 
 
+def get_test_data(lang):
+    test_words = []
+    with open(f'{lang}/dev.in', 'r', encoding='utf-8') as f:
+        for line in f:
+            if len(line.replace("\n", "")) == 0:
+                test_words.append("")
+            else:
+                test_words.append(line.replace("\n", ""))
+    return test_words
+
 # generate empty matrix of size (TxO)
 def generate_empty_matrix(observed_values, hidden_states):
     return np.zeros((len(hidden_states), len(observed_values)))
 
-def generate_emission_matrix(path):
+def generate_emission_matrix(lang, stop_words):
     # declare k for laplace smoothing
     k = 1
 
     # get train data
-    X, y = filter_train_data(path)
+    X, y = filter_train_data(lang, stop_words)
 
     # get set of observed values, convert to list so can index
     observed_values = list(set(X))
@@ -57,35 +67,77 @@ def generate_emission_matrix(path):
         emission_matrix[hidden_states.index(u)][observed_values.index(o)] += 1
 
     # update emission matrix based on formula count(u->o)/count(u), apply log to avoid underflow
-    for u in hidden_states:
-        for o in observed_values:
-            emission_matrix[hidden_states.index(u)][observed_values] = math.log((emission_matrix[hidden_states.index(u)][observed_values]) / (total_count_per_state[u]))
-
+    eps = np.finfo(0.).tiny
+    emission_log = np.log(emission_matrix + eps)
+    
     # add #UNK# token to every hidden state
     for i in range(len(emission_matrix)):
         emission_matrix[i][-1] = math.log(k/(k+total_count_per_state.get(hidden_states[i])))        
-    return emission_matrix, hidden_states, total_count_per_state, observed_values
+    return emission_log, hidden_states, total_count_per_state, observed_values
 
 
 
 # emission probabilities x p(y)
-def naive_bayes(emission_matrix, hidden_states: list, total_count_per_state: dict, observed_values: list):
+def naive_bayes(emission_matrix, hidden_states: list, total_count_per_state: dict):
     # get probability of states, number of times state appear over number of total appearance of all states
     total_state_appearance = sum(total_count_per_state.values())
     hidden_state_probability = total_count_per_state.copy()
 
     # get probability of each state, log final value to avoid underflow -> p(y)
-    for k,v in hidden_state_probability:
+    for k,v in hidden_state_probability.items():
         hidden_state_probability[k] = math.log(v/total_state_appearance)
 
     # add p(y) to emission prob
+    for hidden_state, prob in hidden_state_probability.items():
+        for i in range(len(emission_matrix[hidden_states.index(hidden_state)])):
+            emission_matrix[hidden_states.index(hidden_state)][i] += prob
+
+
+    return emission_matrix
     
 
 
+def test(lang, nb_matrix, observed_values: list, hidden_states: list):
+    states = []
+    state = ""
+
+    words = get_test_data(lang)
+    for word in words:
+        if len(word) == 0:
+            states.append("\n")
+        else:
+            if word not in observed_values:
+                max_unk_prob = float('-inf')
+                for i in range(len(nb_matrix)):
+                    if nb_matrix[i][-1] > max_unk_prob:
+                        max_unk_prob = nb_matrix[i][-1]
+                        state = hidden_states[i]
+            else:
+                max_prob = float('-inf')
+                for i in range(len(nb_matrix)):
+                    if nb_matrix[i][observed_values.index(word)] > max_prob:
+                        max_prob = nb_matrix[i][observed_values.index(
+                            word)]
+                        state = hidden_states[i]
+            states.append(state)
+
+    return states, words, len(words)
+
+def write_to_file(lang, states, words):
+    with open(f'{lang}/p4.dev.out', 'w', encoding='utf-8') as f:
+        for i in range(len(words)):
+            if states[i] != "\n":
+                f.write(words[i] + ' ' + states[i] + "\n")
+            else:
+                f.write(states[i])
+
 if __name__ == '__main__':
-    path = sys.argv[1]
+    try:
+        lang = sys.argv[1]
+    except:
+        sys.exit("Please provide a language path as an argument (python part1.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
 
-
-    X, y = filter_train_data(path,  stop_words)
-    print(len(X), len(y))
-    print(X[0:15])
+    emission_log, hidden_states, total_count_per_state, observed_values = generate_emission_matrix(lang, stop_words)
+    nb_matrix = naive_bayes(emission_log, hidden_states, total_count_per_state)
+    states, words, pred_entities = test(lang, nb_matrix, observed_values, hidden_states)
+    write_to_file(lang, states, words)
