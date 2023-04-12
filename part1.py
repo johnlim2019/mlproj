@@ -1,6 +1,7 @@
 # imports
 import numpy as np
 import sys
+import os
 
 
 def get_data(path):
@@ -112,12 +113,13 @@ def write_to_file(path, states, words):
 
 if __name__ == '__main__':
     try:
-        lang_path = sys.argv[1]
+        lang = sys.argv[1]
     except:
         sys.exit("Please provide a language path as an argument (python part1.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
 
     emission_matrix, count_u_o_matrix, hidden_state_counter, observed_values, hidden_states = generate_emission_matrix(
-        f"{lang_path}/train")
+        f"{lang}/train")
     states, words, pred_entities = test(
-        emission_matrix, f"{lang_path}/dev.in", observed_values, hidden_states)
-    write_to_file(f"{lang_path}/dev.p1.out", states, words)
+        emission_matrix, f"{lang}/dev.in", observed_values, hidden_states)
+    write_to_file(f"{lang}/dev.p1.out", states, words)
+    os.system(f"python3 ./EvalScript/evalResult.py ./{lang}/dev.out ./{lang}/dev.p1.out")

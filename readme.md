@@ -46,4 +46,70 @@ This section learns the transition parameters for a second-order HMM model and i
 Output is written to `dev.p3.out` in the respective data folders.
 
 # Part 4: Design Challenge
+Naive Bayes Model
 
+We previously did not include any preprocessing on the input in the previous parts. As part of our BN model we try to change certain classes of words into a single class. Such as all punctuation-only tokens = #PUNC# observation. 
+
+EN 
+1. No preprocessing
+   1. Entity  F: 0.6427
+   2. Sentiment  F: 0.5148
+2. lowercase
+   1. Entity  F: 0.6457
+   2. Sentiment  F: 0.5234
+3. filter out stop words
+   1. Entity  F: 0.6052
+   2. Sentiment  F: 0.3596
+4. filter out punctuation 
+   1. Entity  F: 0.6383
+   2. Sentiment  F: 0.5104
+5. filter out links and usernames
+   1. Entity  F: 0.6648
+   2. Sentiment  F: 0.5325
+
+FR
+1. No preprocessing
+   1. Entity  F: 0.6052
+   2. Sentiment  F: 0.3596
+2. lowercase
+   1. Entity  F: 0.6052   
+   2. Sentiment  F: 0.3596
+3. filter out stop words
+   1. Entity  F: 0.6052
+   2. Sentiment  F: 0.3596
+4. filter out punctuation 
+   1. Entity  F: 0.6052
+   2. Sentiment  F: 0.3596
+5. filter out links and usernames
+   1. Entity  F: 0.6052
+   2. Sentiment  F: 0.3596
+
+
+Final preprocessing choice is lowercase and filter links and usernames
+EN 
+#Entity in gold data: 802
+#Entity in prediction: 1017
+
+#Correct Entity : 609
+Entity  precision: 0.5988
+Entity  recall: 0.7594
+Entity  F: 0.6696
+
+#Correct Sentiment : 492
+Sentiment  precision: 0.4838
+Sentiment  recall: 0.6135
+Sentiment  F: 0.5410
+
+FR 
+#Entity in gold data: 802
+#Entity in prediction: 1128
+
+#Correct Entity : 584
+Entity  precision: 0.5177
+Entity  recall: 0.7282
+Entity  F: 0.6052
+
+#Correct Sentiment : 347
+Sentiment  precision: 0.3076
+Sentiment  recall: 0.4327
+Sentiment  F: 0.3596

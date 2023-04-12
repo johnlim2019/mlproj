@@ -2,6 +2,7 @@ from part1 import generate_emission_matrix
 import pandas as pd
 from tqdm import tqdm
 import sys
+import os
 
 
 def get_emission(word, tag, emission_matrix, observed_words, tag_list):
@@ -226,11 +227,12 @@ def test(lang_path, transitions, states, emissions, emission_words, emission_sta
 
 if __name__ == '__main__':
     try:
-        lang_path = sys.argv[1]
+        lang = sys.argv[1]
     except:
         print("Please provide a language path as an argument (python part3.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
 
     transitions, states, emissions, emission_words, emission_states = train(
-        lang_path)
-    test(lang_path, transitions, states, emissions,
+        lang)
+    test(lang, transitions, states, emissions,
          emission_words, emission_states)
+    os.system(f"python3 ./EvalScript/evalResult.py ./{lang}/dev.out ./{lang}/dev.p3.out")

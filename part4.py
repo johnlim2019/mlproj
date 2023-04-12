@@ -1,13 +1,18 @@
-import nltk
 from nltk.corpus import stopwords
 import numpy as np
-import os
 import sys
 import math
+import os
+import filter_methods as fmt
 
 # preprocess training set - remove stop words
 stop_words = set(stopwords.words('english'))
+fr_stop_words = set(stopwords.words('french'))
 
+stopwordsdict = {
+    "EN":stop_words,
+    "FR":fr_stop_words
+}
 
 # read training set and remove words that are stopwords
 def filter_train_data(lang, stop_words):
@@ -45,7 +50,7 @@ def generate_emission_matrix(lang, stop_words):
     k = 1
 
     # get train data
-    X, y = filter_train_data(lang, stop_words)
+    X, y = fmt.filter_train_data(lang, stopwordsdict)
 
     # get set of observed values, convert to list so can index
     observed_values = list(set(X))
@@ -101,7 +106,7 @@ def test(lang, nb_matrix, observed_values: list, hidden_states: list):
     states = []
     state = ""
 
-    words = get_test_data(lang)
+    words = fmt.get_test_data(lang,stopwordsdict)
     for word in words:
         if len(word) == 0:
             states.append("\n")
@@ -124,7 +129,7 @@ def test(lang, nb_matrix, observed_values: list, hidden_states: list):
     return states, words, len(words)
 
 def write_to_file(lang, states, words):
-    with open(f'{lang}/p4.dev.out', 'w', encoding='utf-8') as f:
+    with open(f'{lang}/dev.p4.out', 'w', encoding='utf-8') as f:
         for i in range(len(words)):
             if states[i] != "\n":
                 f.write(words[i] + ' ' + states[i] + "\n")
@@ -141,3 +146,4 @@ if __name__ == '__main__':
     nb_matrix = naive_bayes(emission_log, hidden_states, total_count_per_state)
     states, words, pred_entities = test(lang, nb_matrix, observed_values, hidden_states)
     write_to_file(lang, states, words)
+    os.system(f"python3 ./EvalScript/evalResult.py ./{lang}/dev.out ./{lang}/dev.p4.out")

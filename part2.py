@@ -223,7 +223,8 @@ def part2(path='EN'):
 
 if __name__ == '__main__':
     try:
-        lang_path = sys.argv[1]
+        lang = sys.argv[1]
     except:
         sys.exit("Please provide a language path as an argument (python part2.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
-    part2(lang_path)
+    part2(lang)
+    os.system(f"python3 ./EvalScript/evalResult.py ./{lang}/dev.out ./{lang}/dev.p2.out")
