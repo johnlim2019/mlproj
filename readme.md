@@ -31,17 +31,32 @@
 
 This section learns the emission parameters from `train` in the respective data folders and implements a simple sentiment analysis system.
 
+To run the code, navigate to the root project directory and input the following command, specifying the language (EN or FR) to be used:
+```console
+python3 part1.py {language}
+```
+
 Output is written to `dev.p1.out` in the respective data folders.
 
 # Part 2: Transition Parameters and Viterbi
 
 This section learns the transition parameters from `train` in the respective data folders and implements the viterbi algorithm under the simple first-order HMM assumption.
 
+To run the code, navigate to the root project directory and input the following command, specifying the language (EN or FR) to be used:
+```console
+python3 part2.py {language}
+```
+
 Output is written to `dev.p2.out` in the respective data folders.
 
 # Part 3: Second-order HMM
 
 This section learns the transition parameters for a second-order HMM model and implements the viterbi algorithm for decoding this second-order HMM.
+
+To run the code, navigate to the root project directory and input the following command, specifying the language (EN or FR) to be used:
+```console
+python3 part3.py {language}
+```
 
 Output is written to `dev.p3.out` in the respective data folders.
 
