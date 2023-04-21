@@ -27,6 +27,24 @@
     ├── dev.out
     └── train
 
+# Instructions to run
+
+## Dev mode
+
+The default mode. This is used when your data folder follows the above shown structure. The models will be trained on `train`, and tested on `dev.in`. The name of the output file will be dependant on the script that is run. To run in dev mode, you only need to specify `lang`, the name of your data folder. Example as shown.
+
+```
+python3 part1.py <lang path> <mode=dev (default, optional)>
+```
+
+## Test mode
+
+This is used if you wish to specify the **exact** path of the input test file and the **exact** output result file path. You still need to input the path of `lang` where the train file for training will be used. Example as shown.
+
+```
+python3 part1.py EN test <exact input path> <exact output path>
+```
+
 # Part 1: Emission Parameters
 
 This section learns the emission parameters from `train` in the respective data folders and implements a simple sentiment analysis system.
