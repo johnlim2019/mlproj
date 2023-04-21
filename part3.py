@@ -224,15 +224,53 @@ def test(lang_path, transitions, states, emissions, emission_words, emission_sta
                 else:
                     tweet.append(line.strip())
 
+def test_with_path(test_path, output_path, transitions, states, emissions, emission_words, emission_states):
+
+    with open(test_path, 'r', encoding='utf-8') as f:
+        with open(output_path, 'w', encoding='utf-8') as out:
+            tweet = []
+            lines = f.readlines()
+            for line in tqdm(lines):
+                # Check for end of tweet
+                if line == '\n':
+                    opt_path = viterbi(
+                        tweet, transitions, states, emissions, emission_words, emission_states)
+                    for i in range(len(tweet)):
+                        out.write(f"{tweet[i]} {opt_path[i]}")
+                        out.write('\n')
+                    out.write('\n')
+                    tweet = []
+                else:
+                    tweet.append(line.strip())
 
 if __name__ == '__main__':
     try:
         lang = sys.argv[1]
+        try:
+            mode = sys.argv[2]
+        except:
+            mode = 'dev'
     except:
-        print("Please provide a language path as an argument (python part3.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
+        sys.exit("Please provide the correct number of arguments (python part1.py <lang_path> <mode>). See readme for possible values.")
 
-    transitions, states, emissions, emission_words, emission_states = train(
-        lang)
-    test(lang, transitions, states, emissions,
-         emission_words, emission_states)
-    os.system(f"python3 ./EvalScript/evalResult.py ./{lang}/dev.out ./{lang}/dev.p3.out")
+    if mode == 'dev':
+        transitions, states, emissions, emission_words, emission_states = train(
+            lang)
+        test(lang, transitions, states, emissions,
+            emission_words, emission_states)
+    elif mode == 'test':
+        try:
+            test_file_path = sys.argv[3]
+        except:
+            sys.exit("Test file path not provided. See readme for proper usage.")
+        try:
+            result_file_path = sys.argv[4]
+        except:
+            sys.exit("Output file path not provided. See readme for proper usage.")
+
+        transitions, states, emissions, emission_words, emission_states = train(
+            lang)
+        test_with_path(test_file_path, result_file_path, transitions, states, emissions,
+            emission_words, emission_states)
+    else:
+        sys.exit("Invalid mode. See readme for possible values.")
