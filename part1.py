@@ -103,7 +103,7 @@ def test(emission_matrix, test_path, observed_values: list, hidden_states: list)
 
 
 def write_to_file(path, states, words):
-    with open(path, 'w') as f:
+    with open(path, 'w', encoding='utf-8') as f:
         for i in range(len(words)):
             if states[i] != "\n":
                 f.write(words[i] + ' ' + states[i] + "\n")
