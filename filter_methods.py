@@ -20,6 +20,7 @@ def filter_train_data(lang,stopwordsdict:dict):
                 pass
             else:
                 x = line[0]
+                x = x.lower()
                 y.append(line[1])
                 if (re.search("(?=^http)(.+?)(?=$)",x) != None):
                     x = lnks
@@ -29,7 +30,6 @@ def filter_train_data(lang,stopwordsdict:dict):
                 #     x = punc
                 # if (x.lower() in stopwords):
                 #     x = stop
-                x = x.lower()
                 X.append(x)
     return  X, y
 
@@ -46,6 +46,7 @@ def get_test_data(lang,stopwordsdict:dict):
                 X.append("")
             else:
                 x = line.replace("\n","")
+                x = x.lower()
                 if (re.search("(?=^http)(.+?)(?=$)",x) != None):
                     x = lnks
                 elif (re.search("(?=^)(@\w+?)",x) != None):
@@ -54,7 +55,6 @@ def get_test_data(lang,stopwordsdict:dict):
                 #     x = punc
                 # if (x.lower() in stopwords):
                 #     x = stop
-                x = x.lower()
                 X.append(x)
     return X
 
