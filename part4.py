@@ -366,7 +366,7 @@ if __name__ == '__main__':
         except:
             mode = 'dev'
     except:
-        sys.exit("Please provide the correct number of arguments (python part1.py <lang_path> <mode>). See readme for possible values.")
+        sys.exit("Please provide the correct number of arguments (python part4.py <lang_path> <mode>). See readme for possible values.")
     
     if mode == 'dev':
         part2(lang)

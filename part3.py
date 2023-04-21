@@ -251,7 +251,7 @@ if __name__ == '__main__':
         except:
             mode = 'dev'
     except:
-        sys.exit("Please provide the correct number of arguments (python part1.py <lang_path> <mode>). See readme for possible values.")
+        sys.exit("Please provide the correct number of arguments (python part3.py <lang_path> <mode>). See readme for possible values.")
 
     if mode == 'dev':
         transitions, states, emissions, emission_words, emission_states = train(

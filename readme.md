@@ -162,73 +162,41 @@ Sentiment  F: 0.2868
 Output is written to `dev.p3.out` in the respective data folders.
 
 # Part 4: Design Challenge
-Naive Bayes Model
+Data Preprocessing
 
-We previously did not include any preprocessing on the input in the previous parts. As part of our Naive Bayes model we try to change certain classes of words into a single class. Such as all punctuation-only tokens = #PUNC# observation. 
+We previously did not include any preprocessing on the input in the previous parts. As part of our design challenge,  we preprocessed our training data by changing our results to lowercase and tagged links and usernames to #LNK# tag. We applied the processing step to our first order Hidden Markov Model as it currently yields the best F score.
 
-EN 
-1. No preprocessing
-   1. Entity  F: 0.6427
-   2. Sentiment  F: 0.5148
-2. Lowercase
-   1. Entity  F: 0.6457
-   2. Sentiment  F: 0.5234
-3. Tag stop words
-   1. Entity  F: 0.6052
-   2. Sentiment  F: 0.3596
-4. Tag punctuation 
-   1. Entity  F: 0.6383
-   2. Sentiment  F: 0.5104
-5. Tag links and usernames
-   1. Entity  F: 0.6648
-   2. Sentiment  F: 0.5325 
-
-
-FR
-1. No preprocessing
-   1. Entity  F: 0.2373
-   2. Sentiment  F: 0.1492
-2. Lowercase
-   1. Entity  F:  0.2014   
-   2. Sentiment  F: 0.1458
-3. Tag stop words
-   1. Entity  F: 0.2373
-   2. Sentiment  F: 0.1492
-4. Tag punctuation 
-   1. Entity  F: 0.2373
-   2. Sentiment  F: 0.1492
-5. Tag links and usernames
-   1. Entity  F: 0.2373
-   2. Sentiment  F: 0.1492
-
-Final preprocessing choice is lowercase and filter links and usernames
 
 ```console
+python3 part4.py {language}
+
 EN 
 #Entity in gold data: 802
-#Entity in prediction: 1017
+#Entity in prediction: 807
 
-#Correct Entity : 609
-Entity  precision: 0.5988
-Entity  recall: 0.7594
-Entity  F: 0.6696
+#Correct Entity : 547
+Entity  precision: 0.6778
+Entity  recall: 0.6820
+Entity  F: 0.6799
 
-#Correct Sentiment : 492
-Sentiment  precision: 0.4838
-Sentiment  recall: 0.6135
-Sentiment  F: 0.5410
+#Correct Sentiment : 486
+Sentiment  precision: 0.6022
+Sentiment  recall: 0.6060
+Sentiment  F: 0.6041
 
-FR 
-#Entity in gold data: 802
-#Entity in prediction: 1128
+FR
+#Entity in gold data: 238
+#Entity in prediction: 424
 
-#Correct Entity : 584
-Entity  precision: 0.5177
-Entity  recall: 0.7282
-Entity  F: 0.6052
+#Correct Entity : 133
+Entity  precision: 0.3137
+Entity  recall: 0.5588
+Entity  F: 0.4018
 
-#Correct Sentiment : 347
-Sentiment  precision: 0.3076
-Sentiment  recall: 0.4327
-Sentiment  F: 0.3596
+#Correct Sentiment : 82
+Sentiment  precision: 0.1934
+Sentiment  recall: 0.3445
+Sentiment  F: 0.2477
 ```
+
+Output is written to `dev.p4.out` in the respective data folders.
