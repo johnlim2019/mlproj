@@ -221,10 +221,64 @@ def part2(path='EN'):
     return opt_path
 
 
+def part2_with_path(lang, test_in_path, test_out_path):
+    test_obs_ls = get_observed(test_in_path)
+    t_matrix = get_transmission_matrix_outer(f"{lang}/train")
+
+    TEST_OUTPUT = test_out_path
+    emissions, _, _, observed_values, hidden_states = generate_emission_matrix(
+        f"{lang}/train")
+
+    u = ['START'] + hidden_states
+    v = hidden_states + ['STOP']
+    K = len(u)
+    transitions = np.zeros((K, K))
+
+    for i in range(K):
+        for j in range(K):
+            transitions[i][j] = t_matrix[u[i]][v[j]]
+
+    emissions = prepare_emissions(emissions)
+    transitions = prepare_transmission(transitions)
+    states = hidden_states
+    states.insert(0, 'START')
+    states.append('STOP')
+
+    if os.path.exists(TEST_OUTPUT):
+        os.remove(TEST_OUTPUT)
+
+    # For each tweet, decode.
+    for test_obs in test_obs_ls:
+        opt_path, dp, backtrack = viterbi(
+            transitions, states, emissions, test_obs, observed_values)
+
+        write_results(test_obs, states, opt_path, TEST_OUTPUT)
+
+    return opt_path
+
 if __name__ == '__main__':
     try:
         lang = sys.argv[1]
+        try:
+            mode = sys.argv[2]
+        except:
+            mode = 'dev'
     except:
-        sys.exit("Please provide a language path as an argument (python part2.py <lang_path>). Possible values are 'EN' and 'FR' (without quotes)")
-    part2(lang)
-    os.system(f"python3 ./EvalScript/evalResult.py ./{lang}/dev.out ./{lang}/dev.p2.out")
+        sys.exit("Please provide the correct number of arguments (python part1.py <lang_path> <mode>). See readme for possible values.")
+    
+    if mode == 'dev':
+        part2(lang)
+    elif mode == 'test':
+        try:
+            test_file_path = sys.argv[3]
+        except:
+            sys.exit("Test file path not provided. See readme for proper usage.")
+        try:
+            result_file_path = sys.argv[4]
+        except:
+            sys.exit("Output file path not provided. See readme for proper usage.")
+
+        part2_with_path(lang, test_file_path, result_file_path)
+    else:
+        sys.exit("Invalid mode. See readme for possible values.")
+    
